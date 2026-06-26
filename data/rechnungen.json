@@ -1,0 +1,6 @@
+{
+ "schema": "lc-rechnungen-1",
+ "updated": "2026-06-26T00:00:00.000Z",
+ "note": "Dauerspeicher fuer selbst hochgeladene Rechnungen. Die bestehenden 65 Rechnungen sind im App-Code (js/rechnungen.js) hinterlegt; hier kommen neue Uploads dazu.",
+ "added": []
+}
