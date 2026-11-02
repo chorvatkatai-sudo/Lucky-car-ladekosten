@@ -3,6 +3,7 @@
   const D = window.LCData;
   const {
     SESSIONS, IDLE_PENALTIES, MONTHS, MONTH_LABELS, MONTH_SHORT,
+    MONTHS_N, PERIOD_LONG, PERIOD_SHORT, MONATE_TXT, GES_TXT, STAND,
     COUNTRY_NAMES, QUARTERS,
     eu, num, pct, pct1,
     sumBy, aggregate, withAvg,
@@ -51,8 +52,8 @@
     let html = `
       <!-- HEADLINE -->
       <div style="margin-bottom:18px;">
-        <h1 style="font-weight:900;font-size:32px;letter-spacing:-0.5px;margin:0 0 4px;">6-Monats-Übersicht</h1>
-        <p style="margin:0;color:var(--ink-3);font-size:14px;">Dezember 2025 — Mai 2026 · Tesla Supercharger · LCCC + LC Fleet · <b>Stand: 28.05.2026</b></p>
+        <h1 style="font-weight:900;font-size:32px;letter-spacing:-0.5px;margin:0 0 4px;">${MONTHS_N}-Monats-Übersicht</h1>
+        <p style="margin:0;color:var(--ink-3);font-size:14px;">${PERIOD_LONG} · Tesla + DKV · ${GES_TXT} · <b>Stand: ${STAND}</b></p>
       </div>
 
       <!-- KPIs -->
@@ -60,7 +61,7 @@
         <div class="kpi hi">
           <div class="label">Gesamtkosten</div>
           <div class="val">${eu(STATS.eur)}</div>
-          <div class="extra">inkl. USt · 6 Monate</div>
+          <div class="extra">inkl. USt · ${MONATE_TXT}</div>
         </div>
         <div class="kpi">
           <div class="label">Energie</div>
@@ -70,7 +71,7 @@
         <div class="kpi">
           <div class="label">Sessions</div>
           <div class="val">${STATS.n}</div>
-          <div class="extra">${(STATS.n/6).toFixed(0)} ⌀ pro Monat</div>
+          <div class="extra">${(STATS.n/STATS.months_n).toFixed(0)} ⌀ pro Monat</div>
         </div>
         <div class="kpi">
           <div class="label">Fahrzeuge</div>
@@ -92,7 +93,7 @@
       <!-- Monthly trend chart -->
       <div class="card accent">
         <div class="card-h">
-          <h3>Monatsverlauf · 6 Monate</h3>
+          <h3>Monatsverlauf · ${MONATE_TXT}</h3>
           <span class="h-sub">Kosten in € pro Lade-Monat</span>
           <span class="h-meta">SKALA · MAX € ${Math.max(...monthAggs.map(m=>m.eur)).toFixed(0)}</span>
         </div>
@@ -156,7 +157,7 @@
             </div>
             <div>
               <div class="stat-line"><span class="big">${STATS.stations}</span><span class="sml">SC-Stationen</span></div>
-              <div style="margin-top:4px;font-size:12px;color:var(--ink-3);">Unique Tesla-Supercharger</div>
+              <div style="margin-top:4px;font-size:12px;color:var(--ink-3);">Ladepunkte Tesla &amp; DKV</div>
             </div>
           </div>
           <hr class="divider"/>
@@ -177,17 +178,24 @@
           </div>
           <hr class="divider"/>
           <div style="font-size:12px;color:var(--ink-3);">
-            <b style="color:var(--good);">↘ Trend:</b> Zeit-Tarif-Anteil sinkt von 23 % (Dez) auf 0 % (Mai) — Fahrer wechseln zu schnelleren SCs.
+            <b style="color:var(--good);">↘ Trend:</b> Zeit-Tarif-Anteil ${(() => {const f = m => { const a = byMonth(m); const z = sumBy(a.filter(r=>r.kd==='zeit'), r=>r.eu); const g = sumBy(a, r=>r.eu); return g ? z/g : 0; }; const a = f(MONTHS[0]), b = f(MONTHS[MONTHS.length-1]); return (b < a ? 'sinkt' : 'steigt') + ' von ' + pct(a) + ' (' + MONTH_SHORT[MONTHS[0]] + ') auf ' + pct(b) + ' (' + MONTH_SHORT[MONTHS[MONTHS.length-1]] + ')';})()} — gerechnet über den gesamten Zeitraum.
           </div>
         </div>
 
         <div class="card">
           <div class="card-h"><h3>Datenquellen</h3><span class="h-sub">Lückenlos · 100 % gematcht</span></div>
           <table class="dt" style="font-size:13px;">
-            <tr><td>LCCC-CSVs</td><td class="num"><b>${SESSIONS.filter(s=>s.src==='Tesla LCCC').length}</b> Sessions</td></tr>
-            <tr><td>FLEET-Einzelrechnungen</td><td class="num"><b>${SESSIONS.filter(s=>s.src==='Tesla Fleet').length}</b> Sessions</td></tr>
+            ${[...new Set(SESSIONS.map(s=>s.src))].sort().map(q=>`<tr><td>${q}</td><td class="num"><b>${SESSIONS.filter(s=>s.src===q).length}</b> Positionen</td></tr>`).join('')}
             <tr><td>Idle-Penalties (Detail)</td><td class="num"><b>${IDLE_PENALTIES.length}</b> Vorfälle</td></tr>
-            <tr><td>FIN-Match-Rate</td><td class="num"><b style="color:var(--good);">100 %</b></td></tr>
+            ${(() => {
+              // Positionen, deren Fahrzeug ueber die FIN in den Stammdaten haengt.
+              // DKV nennt nur das Kennzeichen; fehlt es dort, steht v='KZ_<kennzeichen>'.
+              const ohne = SESSIONS.filter(s => String(s.v || '').startsWith('KZ_'));
+              const quote = SESSIONS.length ? (SESSIONS.length - ohne.length) / SESSIONS.length : 1;
+              const kfz = [...new Set(ohne.map(s => s.k))].sort();
+              return `<tr><td>FIN-Match-Rate</td><td class="num"><b style="color:var(${quote >= 0.999 ? '--good' : '--warn'});">${pct1(quote)}</b></td></tr>`
+                + (kfz.length ? `<tr><td colspan="2" class="small" style="color:var(--ink-3);">nicht in den Stammdaten: <b>${kfz.join(', ')}</b> · ${ohne.length} Positionen</td></tr>` : '');
+            })()}
             <tr><td>Währungsumrechnung</td><td class="num" style="font-size:11px;">CZK @ 24,70 · HUF @ 400</td></tr>
           </table>
         </div>
