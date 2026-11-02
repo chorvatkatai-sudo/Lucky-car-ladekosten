@@ -3,6 +3,7 @@
   const D = window.LCData;
   const {
     SESSIONS, IDLE_PENALTIES, MONTHS, MONTH_LABELS, MONTH_SHORT, COUNTRY_NAMES,
+    MONTHS_N, PERIOD_LONG, PERIOD_SHORT, MONATE_TXT, GES_TXT, STAND,
     eu, num, pct, sumBy, aggregate, withAvg, svgBars, svgSpark
   } = D;
   const FP = window.FUHRPARK_DATA || { fahrer:{}, filialen:{}, evs:{} };
@@ -72,7 +73,7 @@
       <p style="margin:0 0 18px;color:var(--ink-3);font-size:14px;">Lade-Kosten je Gesellschaft &amp; Filiale — Grundlage für die interne Weiterverrechnung. Zuordnung über die Stammdaten des Fahrers.</p>
 
       <div class="kpis" style="grid-template-columns:repeat(${gesTotals.length+1},1fr);">
-        <div class="kpi hi"><div class="label">Gesamt</div><div class="val" style="font-size:26px;">${eu(total.eur)}</div><div class="extra">${total.n} Sessions · 6 Monate</div></div>
+        <div class="kpi hi"><div class="label">Gesamt</div><div class="val" style="font-size:26px;">${eu(total.eur)}</div><div class="extra">${total.n} Sessions · ${MONATE_TXT}</div></div>
         ${gesTotals.map(g => `<div class="kpi"><div class="label">${g.g}</div><div class="val" style="font-size:24px;">${eu(g.total)}</div><div class="extra">${pct(g.total/total.eur)} vom Total</div></div>`).join('')}
       </div>
 

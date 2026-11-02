@@ -28,7 +28,22 @@
     if(!MONTH_LABELS[m] && mo>=1 && mo<=12) MONTH_LABELS[m] = _M_DE[mo]+' '+y;
     if(!MONTH_SHORT[m] && mo>=1 && mo<=12) MONTH_SHORT[m] = _M_SH[mo];
   });
-  const COUNTRY_NAMES = {AT:'Österreich',DE:'Deutschland',CZ:'Tschechien',SI:'Slowenien',IT:'Italien',HU:'Ungarn',HR:'Kroatien'};
+  // Zeitraum-Angaben aus den Daten ableiten, damit Überschriften nicht
+  // veralten, wenn neue Monate dazukommen.
+  const MONTHS_N = MONTHS.length;
+  const _first = MONTHS[0] || '', _last = MONTHS[MONTHS.length-1] || '';
+  const PERIOD_LONG  = MONTHS_N ? (MONTH_LABELS[_first]+' — '+MONTH_LABELS[_last]) : '';
+  const PERIOD_SHORT = MONTHS_N ? (MONTH_SHORT[_first]+' '+_first.slice(0,4)+' — '+MONTH_SHORT[_last]+' '+_last.slice(0,4)) : '';
+  const MONATE_TXT   = MONTHS_N + ' Monate';
+  const GES_TXT      = [...new Set(SESSIONS.map(s=>s.g))].sort().join(' + ');
+  const STAND = (() => {
+    const letzte = SESSIONS.map(s=>s.s).filter(Boolean).sort().pop();
+    if (!letzte) return '';
+    const d = new Date(letzte);
+    return ('0'+d.getDate()).slice(-2)+'.'+('0'+(d.getMonth()+1)).slice(-2)+'.'+d.getFullYear();
+  })();
+
+  const COUNTRY_NAMES = {AT:'Österreich',DE:'Deutschland',CZ:'Tschechien',SI:'Slowenien',IT:'Italien',HU:'Ungarn',HR:'Kroatien',SK:'Slowakei'};
   const COUNTRY_FLAGS = {AT:'🇦🇹',DE:'🇩🇪',CZ:'🇨🇿',SI:'🇸🇮',IT:'🇮🇹',HU:'🇭🇺',HR:'🇭🇷'};
   // Use country code badges (no emoji to stay neutral)
 
@@ -312,6 +327,7 @@
   // — Helpers exposed
   window.LCData = {
     SESSIONS, IDLE_PENALTIES, MONTHS, MONTH_LABELS, MONTH_SHORT,
+    MONTHS_N, PERIOD_LONG, PERIOD_SHORT, MONATE_TXT, GES_TXT, STAND,
     COUNTRY_NAMES, COUNTRY_FLAGS, QUARTERS,
     eu, num, pct, pct1,
     sumBy, groupBy, aggregate, withAvg,

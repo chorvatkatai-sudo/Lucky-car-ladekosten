@@ -14,10 +14,13 @@
     ASS:'ASS (Assistance)'
   };
   const LIEF_BADGE = { 'Wien Energie':'ges-ass', 'DKV':'ges-franchise', 'Tesla':'ges-fleet' };
-  const M_LABEL = {
-    '2026-01':'Jan 26','2026-02':'Feb 26','2026-03':'Mär 26',
-    '2026-04':'Apr 26','2026-05':'Mai 26','2026-06':'Jun 26'
-  };
+  // Monatslabels aus den Daten ableiten, damit neue Monate nicht durchfallen.
+  const _MS = ['','Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
+  const M_LABEL = {};
+  [...new Set(INV.map(i=>i.monat).filter(Boolean))].sort().forEach(m => {
+    const [y,mo] = String(m).split('-');
+    M_LABEL[m] = (_MS[+mo] || m) + ' ' + String(y).slice(2);
+  });
   const fmtD = d => d ? d.slice(8,10)+'.'+d.slice(5,7)+'.'+d.slice(2,4) : '—';
   const money = i => i.waehrung==='CZK'
     ? `${num(i.betrag,2)} CZK <span class="muted" style="font-weight:400;">≈ ${eu(i.eur)}</span>`

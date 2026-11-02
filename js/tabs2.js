@@ -3,6 +3,7 @@
   const D = window.LCData;
   const {
     SESSIONS, IDLE_PENALTIES, MONTHS, MONTH_LABELS, MONTH_SHORT,
+    MONTHS_N, PERIOD_LONG, PERIOD_SHORT, MONATE_TXT, GES_TXT, STAND,
     COUNTRY_NAMES,
     eu, num, pct, pct1,
     sumBy, aggregate, withAvg,
@@ -31,7 +32,7 @@
 
     let html = `
       <h1 style="font-weight:900;font-size:32px;letter-spacing:-0.5px;margin:0 0 4px;">Fahrzeug-Analyse</h1>
-      <p style="margin:0 0 18px;color:var(--ink-3);font-size:14px;"><b>${vehicles.length}</b> Tesla-Fahrzeuge mit Lade-Aktivität · 6 Monate Beobachtungszeitraum</p>
+      <p style="margin:0 0 18px;color:var(--ink-3);font-size:14px;"><b>${vehicles.length}</b> Tesla-Fahrzeuge mit Lade-Aktivität · ${MONATE_TXT} Beobachtungszeitraum</p>
 
       <div class="kpis">
         <div class="kpi hi">
@@ -42,7 +43,7 @@
         <div class="kpi">
           <div class="label">Ø Kosten / Fzg</div>
           <div class="val">${eu(STATS.eur/vehicles.length)}</div>
-          <div class="extra">6 Monate</div>
+          <div class="extra">${MONATE_TXT}</div>
         </div>
         <div class="kpi">
           <div class="label">Ø Sessions / Fzg</div>
@@ -226,7 +227,7 @@
         <div class="kpi hi">
           <div class="label">Stationen gesamt</div>
           <div class="val">${stations.length}</div>
-          <div class="extra">unique über 6 Monate</div>
+          <div class="extra">unique über ${MONATE_TXT}</div>
         </div>
         <div class="kpi">
           <div class="label">Meistbesucht</div>
@@ -390,7 +391,7 @@
       <div class="alert-box">
         <div class="icon">€</div>
         <div class="body">
-          <h4 style="font-size:20px;">Vermeidbare Kosten: <b>${eu(totalVermeidbar)}</b> in 6 Monaten</h4>
+          <h4 style="font-size:20px;">Vermeidbare Kosten: <b>${eu(totalVermeidbar)}</b> in ${MONATE_TXT}n</h4>
           <p>
             Davon <b>${eu(totalZeit)}</b> durch <b>${zeitSess.length} Zeit-Tarif-Sessions</b> (langsame Ladesäulen, ø ${(totalZeit/zeitSess.length).toFixed(2)} €/Sess) ·
             <b>${eu(totalIdle)}</b> durch <b>${idleRows.length} Idle-Penaltys</b> (Auto stand am Stecker nach voller Ladung).
@@ -641,7 +642,7 @@
       <div class="alert-box good">
         <div class="icon">€</div>
         <div class="body">
-          <h4 style="font-size:20px;">Geschätztes Einsparpotential: <b>${eu(totalSavings)} / 6 Monate</b></h4>
+          <h4 style="font-size:20px;">Geschätztes Einsparpotential: <b>${eu(totalSavings)} / ${MONATE_TXT}</b></h4>
           <p>
             Hochgerechnet auf 12 Monate: <b>${eu(totalSavings * 2)}</b>. Das entspricht <b>${pct(totalSavings/STATS.eur)}</b> der aktuellen Lade-Kosten — durch reine Verhaltensänderungen (Stations-Auswahl &amp; Idle-Vermeidung), ohne Investition.
           </p>
@@ -690,7 +691,7 @@
     document.getElementById('ms-sessions').textContent = STATS.n;
     document.getElementById('ms-eur').textContent = eu(STATS.eur);
     document.getElementById('ms-kwh').textContent = num(STATS.kwh, 0);
-    document.getElementById('ms-period').textContent = 'DEZ 2025 — MAI 2026';
+    document.getElementById('ms-period').textContent = PERIOD_SHORT;
 
     // Badge for blockier — show percentage (compact, won't wrap)
     const blockierEur = sumBy(SESSIONS.filter(s=>s.kd==='zeit'), s=>s.eu) + sumBy(IDLE_PENALTIES, r=>r.eu);
