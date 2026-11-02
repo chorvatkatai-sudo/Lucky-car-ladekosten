@@ -32,7 +32,7 @@
 
     let html = `
       <h1 style="font-weight:900;font-size:32px;letter-spacing:-0.5px;margin:0 0 4px;">Fahrzeug-Analyse</h1>
-      <p style="margin:0 0 18px;color:var(--ink-3);font-size:14px;"><b>${vehicles.length}</b> Tesla-Fahrzeuge mit Lade-Aktivität · ${MONATE_TXT} Beobachtungszeitraum</p>
+      <p style="margin:0 0 18px;color:var(--ink-3);font-size:14px;"><b>${vehicles.length}</b> Fahrzeuge mit Lade-Aktivität (Tesla &amp; DKV) · ${MONATE_TXT} Beobachtungszeitraum</p>
 
       <div class="kpis">
         <div class="kpi hi">
@@ -614,7 +614,7 @@
       savings: STATS.eur * 0.05,  // Estimated 5% potential
       impact: 'gering',
       target: 'alle Fahrer',
-      body: `Tesla Supercharger haben tageszeit-abhängige Preise. In Österreich (Hauptmarkt) sind Sessions zwischen 23 Uhr und 6 Uhr ~15 % günstiger. Wenn Fahrzeuge nicht zeitkritisch geladen werden müssen, kann eine Verlagerung an die Heimladestation (Wien Energie) deutlich sparen — ø Heimstromtarif ~€0,28/kWh vs. SC ~€0,45/kWh.`
+      body: `Tesla-Supercharger haben tageszeit-abhängige Preise. In Österreich (Hauptmarkt) sind Sessions zwischen 23 Uhr und 6 Uhr ~15 % günstiger. Wenn Fahrzeuge nicht zeitkritisch geladen werden müssen, kann eine Verlagerung an die Heimladestation (Wien Energie) deutlich sparen — ø Heimstromtarif ~€0,28/kWh vs. SC ~€0,45/kWh.`
     });
 
     // Trend insight
@@ -698,6 +698,13 @@
     const blockierPct = (blockierEur / STATS.eur * 100).toFixed(0);
     document.getElementById('badge-blockier').textContent = blockierPct + ' %';
 
+    // Badge fuer Ausland - Anteil der Auslandskosten an den Gesamtkosten
+    const aBadge = document.getElementById('badge-ausland');
+    if (aBadge) {
+      const ausEur = sumBy(SESSIONS.filter(s => s.c && s.c !== 'AT'), s => s.eu);
+      aBadge.textContent = STATS.eur ? (ausEur / STATS.eur * 100).toFixed(0) + ' %' : '—';
+    }
+
     // Badge for Rechnungen — number of duplicate groups found
     const rBadge = document.getElementById('badge-rechnungen');
     if (rBadge && window.RECHNUNGEN_DATA) {
@@ -722,6 +729,7 @@
         case 'fahrzeuge':  renderFahrzeuge(host); break;
         case 'fahrer':     renderFahrer(host); break;
         case 'standorte':  renderStandorte(host); break;
+        case 'ausland':    window.LCApp.renderAusland(host); break;
         case 'abrechnung': window.LCApp.renderAbrechnung(host); break;
         case 'rechnungen': window.LCApp.renderRechnungen(host); break;
         case 'budget':     window.LCApp.renderBudget(host); break;

@@ -85,12 +85,18 @@
   function byDriver(fahrer) { return SESSIONS.filter(s => s.f === fahrer); }
   function byCountry(country) { return SESSIONS.filter(s => s.c === country); }
 
-  // — Quarters
-  const QUARTERS = {
-    'Q4-2025': { label:'Q4 2025', months:['2025-12'] },
-    'Q1-2026': { label:'Q1 2026', months:['2026-01','2026-02','2026-03'] },
-    'Q2-2026': { label:'Q2 2026', months:['2026-04','2026-05','2026-06'] }
-  };
+  // — Quarters: aus den vorhandenen Monaten ableiten, damit neue Quartale
+  //   nicht durchfallen (vorher fest bis Q2-2026 verdrahtet).
+  const QUARTERS = (() => {
+    const q = {};
+    MONTHS.forEach(m => {
+      const [y, mo] = String(m).split('-');
+      const qn = Math.floor((+mo - 1) / 3) + 1;
+      const key = 'Q' + qn + '-' + y;
+      (q[key] ??= { label: 'Q' + qn + ' ' + y, months: [] }).months.push(m);
+    });
+    return q;
+  })();
 
   // — Vehicle/Driver/Station/Country aggregates
   function byField(field, sessions = SESSIONS) {
@@ -194,7 +200,7 @@
     for (let r = 0; r <= 4; r++) {
       const yy = padT + innerH * r / 4;
       svg += `<line x1="${padL}" y1="${yy.toFixed(1)}" x2="${width-padR}" y2="${yy.toFixed(1)}" stroke="${grid}" stroke-width="1" ${r===4?'':'stroke-dasharray="2 5"'}/>`;
-      svg += `<text x="${padL-10}" y="${(yy+4).toFixed(1)}" text-anchor="end" font-family="JetBrains Mono" font-size="11" fill="${txt}">${format(max*(1-r/4))}</text>`;
+      svg += `<text x="${padL-10}" y="${(yy+4).toFixed(1)}" text-anchor="end" font-family="Roboto Condensed" font-size="11" fill="${txt}">${format(max*(1-r/4))}</text>`;
     }
     const pts = data.map((d,i) => `${x(i).toFixed(1)},${y(d.value).toFixed(1)}`);
     // area fill
@@ -205,7 +211,7 @@
     data.forEach((d,i) => {
       const px = x(i), py = y(d.value);
       svg += `<circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="4.5" fill="var(--paper,#0c0d10)" stroke="${line}" stroke-width="2.5"/>`;
-      svg += `<text x="${px.toFixed(1)}" y="${(py-14).toFixed(1)}" text-anchor="middle" font-family="JetBrains Mono" font-weight="700" font-size="13" fill="${ink}">${format(d.value)}</text>`;
+      svg += `<text x="${px.toFixed(1)}" y="${(py-14).toFixed(1)}" text-anchor="middle" font-family="Roboto Condensed" font-weight="700" font-size="13" fill="${ink}">${format(d.value)}</text>`;
       svg += `<text x="${px.toFixed(1)}" y="${(padT+innerH+20).toFixed(1)}" text-anchor="middle" font-family="Roboto Condensed" font-weight="600" font-size="13" fill="${ink}">${d.label}</text>`;
       if (d.sublabel) svg += `<text x="${px.toFixed(1)}" y="${(padT+innerH+36).toFixed(1)}" text-anchor="middle" font-family="Roboto Condensed" font-size="11" fill="${txt}">${d.sublabel}</text>`;
     });

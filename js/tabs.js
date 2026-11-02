@@ -53,7 +53,7 @@
       <!-- HEADLINE -->
       <div style="margin-bottom:18px;">
         <h1 style="font-weight:900;font-size:32px;letter-spacing:-0.5px;margin:0 0 4px;">${MONTHS_N}-Monats-Übersicht</h1>
-        <p style="margin:0;color:var(--ink-3);font-size:14px;">${PERIOD_LONG} · Tesla Supercharger · ${GES_TXT} · <b>Stand: ${STAND}</b></p>
+        <p style="margin:0;color:var(--ink-3);font-size:14px;">${PERIOD_LONG} · Tesla + DKV · ${GES_TXT} · <b>Stand: ${STAND}</b></p>
       </div>
 
       <!-- KPIs -->
@@ -157,7 +157,7 @@
             </div>
             <div>
               <div class="stat-line"><span class="big">${STATS.stations}</span><span class="sml">SC-Stationen</span></div>
-              <div style="margin-top:4px;font-size:12px;color:var(--ink-3);">Unique Tesla-Supercharger</div>
+              <div style="margin-top:4px;font-size:12px;color:var(--ink-3);">Ladepunkte Tesla &amp; DKV</div>
             </div>
           </div>
           <hr class="divider"/>
@@ -185,10 +185,17 @@
         <div class="card">
           <div class="card-h"><h3>Datenquellen</h3><span class="h-sub">Lückenlos · 100 % gematcht</span></div>
           <table class="dt" style="font-size:13px;">
-            <tr><td>Tesla-CSVs (LCCC · Franchise · ASS)</td><td class="num"><b>${SESSIONS.filter(s=>s.src!=='Tesla Fleet').length}</b> Sessions</td></tr>
-            <tr><td>FLEET-Einzelrechnungen</td><td class="num"><b>${SESSIONS.filter(s=>s.src==='Tesla Fleet').length}</b> Sessions</td></tr>
+            ${[...new Set(SESSIONS.map(s=>s.src))].sort().map(q=>`<tr><td>${q}</td><td class="num"><b>${SESSIONS.filter(s=>s.src===q).length}</b> Positionen</td></tr>`).join('')}
             <tr><td>Idle-Penalties (Detail)</td><td class="num"><b>${IDLE_PENALTIES.length}</b> Vorfälle</td></tr>
-            <tr><td>FIN-Match-Rate</td><td class="num"><b style="color:var(--good);">100 %</b></td></tr>
+            ${(() => {
+              // Positionen, deren Fahrzeug ueber die FIN in den Stammdaten haengt.
+              // DKV nennt nur das Kennzeichen; fehlt es dort, steht v='KZ_<kennzeichen>'.
+              const ohne = SESSIONS.filter(s => String(s.v || '').startsWith('KZ_'));
+              const quote = SESSIONS.length ? (SESSIONS.length - ohne.length) / SESSIONS.length : 1;
+              const kfz = [...new Set(ohne.map(s => s.k))].sort();
+              return `<tr><td>FIN-Match-Rate</td><td class="num"><b style="color:var(${quote >= 0.999 ? '--good' : '--warn'});">${pct1(quote)}</b></td></tr>`
+                + (kfz.length ? `<tr><td colspan="2" class="small" style="color:var(--ink-3);">nicht in den Stammdaten: <b>${kfz.join(', ')}</b> · ${ohne.length} Positionen</td></tr>` : '');
+            })()}
             <tr><td>Währungsumrechnung</td><td class="num" style="font-size:11px;">CZK @ 24,70 · HUF @ 400</td></tr>
           </table>
         </div>
