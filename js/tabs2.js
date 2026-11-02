@@ -705,12 +705,6 @@
       aBadge.textContent = STATS.eur ? (ausEur / STATS.eur * 100).toFixed(0) + ' %' : '—';
     }
 
-    // Badge for Rechnungen — number of duplicate groups found
-    const rBadge = document.getElementById('badge-rechnungen');
-    if (rBadge && window.RECHNUNGEN_DATA) {
-      const dn = (window.RECHNUNGEN_DATA.duplicates || []).length;
-      rBadge.textContent = window.RECHNUNGEN_DATA.cleaned ? 'OK' : (dn ? dn + ' Dup' : 'OK');
-    }
 
     // Tab switching
     const tabs = document.querySelectorAll('.tab-nav button');
@@ -728,12 +722,8 @@
         case 'quartal':    window.LCApp.renderQuartal(host); break;
         case 'fahrzeuge':  renderFahrzeuge(host); break;
         case 'fahrer':     renderFahrer(host); break;
-        case 'standorte':  renderStandorte(host); break;
+        case 'standorte':  window.LCApp.renderStandorte(host); break;
         case 'ausland':    window.LCApp.renderAusland(host); break;
-        case 'abrechnung': window.LCApp.renderAbrechnung(host); break;
-        case 'rechnungen': window.LCApp.renderRechnungen(host); break;
-        case 'budget':     window.LCApp.renderBudget(host); break;
-        case 'pruefung':   window.LCApp.renderPruefung(host); break;
         case 'blockier':   renderBlockier(host); break;
         case 'spartipps':  renderSpartipps(host); break;
       }
