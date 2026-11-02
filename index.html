@@ -77,8 +77,6 @@
   }
   .tab-nav button:hover{color:var(--ink);}
   .tab-nav button.active{color:var(--yellow);border-bottom-color:var(--yellow);}
-  .tab-nav button.up-tab{color:var(--yellow);}
-  .tab-nav button.up-tab::before{content:'▲ ';font-size:9px;vertical-align:1px;}
   .tab-nav button .tab-badge{
     display:inline-block;background:var(--yellow);color:#0d0d0d;
     font-size:10px;padding:1px 5px;margin-left:6px;font-weight:700;vertical-align:1px;
@@ -302,7 +300,6 @@
 
 <nav class="tab-nav" id="tabNav">
   <button data-tab="uebersicht" class="active">Übersicht</button>
-  <button data-tab="upload" class="up-tab">Upload <span class="tab-badge live" id="badge-upload">NEU</span></button>
   <button data-tab="detail">Detail-Ladungen</button>
   <button data-tab="monat">Monat</button>
   <button data-tab="quartal">Quartal</button>
@@ -316,7 +313,6 @@
 
 <main>
   <section class="tab-section active" id="tab-uebersicht"></section>
-  <section class="tab-section" id="tab-upload"></section>
   <section class="tab-section" id="tab-detail"></section>
   <section class="tab-section" id="tab-monat"></section>
   <section class="tab-section" id="tab-quartal"></section>
@@ -349,19 +345,16 @@
     }catch(e){}
   })();
 </script>
-<script src="js/fuhrpark.js"></script>
 <script src="js/belege.js"></script>
 <script src="js/utils.js"></script>
 <script src="js/tabs.js"></script>
 <script src="js/tabs2.js"></script>
 <script src="js/detail.js"></script>
-<script src="js/upload.js"></script>
 <script src="js/geo_at.js"></script>
 <script src="js/karte.js"></script>
 <script src="js/ausland.js"></script>
 <script>
   function __lcBoot(){
-    if (window.LCUpload && window.LCUpload.mergeStored) window.LCUpload.mergeStored();
     LCApp.init();
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', __lcBoot);

@@ -716,7 +716,6 @@
       const host = document.getElementById('tab-' + tab);
       switch(tab) {
         case 'uebersicht': window.LCApp.renderUebersicht(host); break;
-        case 'upload':     window.LCApp.renderUpload(host); break;
         case 'detail':     window.LCApp.renderDetail(host); break;
         case 'monat':      window.LCApp.renderMonat(host); break;
         case 'quartal':    window.LCApp.renderQuartal(host); break;
@@ -729,7 +728,7 @@
       }
       renderedTabs.add(tab);
       // Universelle Tab-Suche an alle Tabs außer dem Detail-Tab (hat eigene Filter) anhängen
-      if (tab !== 'detail' && tab !== 'budget' && tab !== 'upload' && window.LCApp.attachTabSearch) {
+      if (tab !== 'detail' && window.LCApp.attachTabSearch) {
         window.LCApp.attachTabSearch(host);
       }
     }
