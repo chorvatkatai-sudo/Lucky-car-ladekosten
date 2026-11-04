@@ -1,4 +1,7 @@
-// Lucky Car Ladestatistik · Tabs 2 — Fahrzeuge, Fahrer, Standorte, Blockier, Spar-Tipps
+// Lucky Car Ladestatistik · Tabs 2 — Fahrzeuge, Fahrer, Standorte, Blockier-Kosten
+// Der alte Reiter "Spar-Tipps" wurde am 04.11.2026 entfernt: er rechnete mit
+// erfundenen Multiplikatoren (pauschal x 0,45), nannte Orte und Monate fest
+// verdrahtet und widersprach dem belegten Reiter "Tipps" (js/effizienz.js).
 (function(){
   const D = window.LCData;
   const {
@@ -498,172 +501,6 @@
   }
 
   // ============================================================================
-  // SPAR-TIPPS
-  // ============================================================================
-  function renderSpartipps(host) {
-    const zeitSess = SESSIONS.filter(s => s.kd === 'zeit');
-
-    // Per driver compute their zeit-pattern
-    const drivers = {};
-    for (const s of zeitSess) {
-      drivers[s.f] ??= { name:s.f, kfz:new Set(), n:0, eur:0, stations:{}, hours:Array(24).fill(0), months:Array(MONTHS.length).fill(0) };
-      drivers[s.f].kfz.add(s.k);
-      drivers[s.f].n++;
-      drivers[s.f].eur += s.eu;
-      drivers[s.f].stations[s.st] = (drivers[s.f].stations[s.st] || 0) + 1;
-      if (s.h != null) drivers[s.f].hours[s.h]++;
-      drivers[s.f].months[MONTHS.indexOf(s.m)]++;
-    }
-    const driverList = Object.values(drivers).map(d => ({
-      ...d, kfz:[...d.kfz],
-      topStation: Object.entries(d.stations).sort((a,b)=>b[1]-a[1])[0],
-      peakHour: d.hours.indexOf(Math.max(...d.hours)),
-      trend: d.months[d.months.length-1] - d.months[0]
-    })).sort((a,b)=>b.eur-a.eur);
-
-    // Estimate savings per driver
-    function estimateSaving(d) {
-      // Assume avg kWh tarif of €0.45/kWh, zeit-tarif ø session = €11 over ~25 min ≈ would have been 20kWh × 0.45 = €9 → saving ~20%
-      // More conservative: zeit-sess avg €12, comparable kWh would be ~€8 (40 kWh × 0.20€ AC) → save ~33%
-      return d.eur * 0.45;
-    }
-
-    // Generate specific tips
-    const tips = [];
-
-    // Tip 1: Innsbruck Zeit-Tarif (biggest pattern)
-    const innsbruckSess = zeitSess.filter(s => s.st && s.st.includes('Innsbruck'));
-    if (innsbruckSess.length > 5) {
-      const innsbruckDrivers = [...new Set(innsbruckSess.map(s=>s.f))];
-      const innsbruckCost = sumBy(innsbruckSess, s=>s.eu);
-      tips.push({
-        priority: 1,
-        title: 'Innsbruck SC umgehen — größte einzelne Spar-Chance',
-        savings: innsbruckCost * 0.45,
-        impact: 'hoch',
-        target: innsbruckDrivers.join(', '),
-        body: `<b>${innsbruckSess.length} Zeit-Tarif-Sessions</b> in Innsbruck haben <b>${eu(innsbruckCost)}</b> gekostet. Die Innsbrucker SC laden über Zeit-Tarif (€/min), nicht kWh — bei langsamer AC-Ladegeschwindigkeit unnötig teuer. <b>Empfehlung:</b> Telfs SC (15 km westlich, kWh-Tarif) oder Wattens SC (10 km östlich) anfahren. Ersparnis pro Session: ~€5.`
-      });
-    }
-
-    // Tip 2: Liezen / Kapfenberg etc. — secondary zeit-stations
-    const otherZeitStations = Object.entries(zeitSess.reduce((a,s)=>{a[s.st] = (a[s.st]||0)+1; return a;}, {}))
-      .filter(([n])=>!n.includes('Innsbruck'))
-      .sort((a,b)=>b[1]-a[1]).slice(0, 5);
-    if (otherZeitStations.length > 0) {
-      tips.push({
-        priority: 2,
-        title: 'Weitere Zeit-Tarif-Hotspots meiden',
-        savings: sumBy(zeitSess.filter(s => !s.st.includes('Innsbruck')), s=>s.eu) * 0.4,
-        impact: 'mittel',
-        target: 'mehrere Fahrer',
-        body: `Außerhalb von Innsbruck sind die häufigsten Zeit-Tarif-Stationen: <b>${otherZeitStations.map(([n,c])=>`${n.split(',')[0]} (${c}×)`).join(' · ')}</b>. Alle haben langsame AC-Ladung. Fahrer sollten ihre Routenplanung anpassen — die Tesla-App zeigt kWh-Tarif-SCs farblich an.`
-      });
-    }
-
-    // Tip 3: Top blockier
-    const topBlockierer = driverList[0];
-    if (topBlockierer && topBlockierer.eur > 100) {
-      tips.push({
-        priority: 1,
-        title: `Coaching-Gespräch mit ${topBlockierer.name}`,
-        savings: topBlockierer.eur * 0.45,
-        impact: 'hoch',
-        target: topBlockierer.name,
-        body: `${topBlockierer.name} verursacht <b>${eu(topBlockierer.eur)}</b> Zeit-Tarif-Kosten in <b>${topBlockierer.n} Sessions</b> — überwiegend an einer Station (${topBlockierer.topStation[0].split(',')[0]}, ${topBlockierer.topStation[1]}× besucht). Persönliches Gespräch + Routen-Coaching kann diesen Posten halbieren.`
-      });
-    }
-
-    // Tip 4: Idle penalties
-    if (IDLE_PENALTIES.length > 0) {
-      const topIdler = Object.entries(IDLE_PENALTIES.reduce((a,r)=>{a[r.f] = (a[r.f]||0)+r.eu; return a;}, {})).sort((a,b)=>b[1]-a[1])[0];
-      tips.push({
-        priority: 3,
-        title: 'Idle-Gebühren reduzieren',
-        savings: sumBy(IDLE_PENALTIES, r=>r.eu),
-        impact: 'gering',
-        target: topIdler[0],
-        body: `<b>${IDLE_PENALTIES.length} Idle-Penaltys</b> (Auto stand nach voller Ladung am Stecker, ${eu(sumBy(IDLE_PENALTIES, r=>r.eu))} insgesamt) — fast vollständig vermeidbar durch Tesla-App-Push-Benachrichtigung "Ladung beendet". Top-Verursacher: <b>${topIdler[0]}</b> mit ${eu(topIdler[1])}.`
-      });
-    }
-
-    // Tip 5: Off-peak charging?
-    tips.push({
-      priority: 4,
-      title: 'Off-Peak-Ladung wo möglich',
-      savings: STATS.eur * 0.05,  // Estimated 5% potential
-      impact: 'gering',
-      target: 'alle Fahrer',
-      body: `Tesla-Supercharger haben tageszeit-abhängige Preise. In Österreich (Hauptmarkt) sind Sessions zwischen 23 Uhr und 6 Uhr ~15 % günstiger. Wenn Fahrzeuge nicht zeitkritisch geladen werden müssen, kann eine Verlagerung an die Heimladestation (Wien Energie) deutlich sparen — ø Heimstromtarif ~€0,28/kWh vs. SC ~€0,45/kWh.`
-    });
-
-    // Trend insight
-    const trendTip = {
-      priority: 0, // celebration
-      title: '✓ Positiver Trend: Zeit-Tarif-Anteil fällt seit Dezember',
-      savings: 0,
-      impact: 'erreicht',
-      target: 'gesamte Flotte',
-      body: `Dezember hatte <b>${pct((sumBy(zeitSess.filter(s=>s.m==='2025-12'), s=>s.eu) + sumBy(IDLE_PENALTIES.filter(r=>r.m==='2025-12'), r=>r.eu))/withAvg(aggregate(byMonth('2025-12'))).eur)}</b> vermeidbare Kosten. Im Mai sind es <b>${pct((sumBy(zeitSess.filter(s=>s.m==='2026-05'), s=>s.eu))/withAvg(aggregate(byMonth('2026-05'))).eur)}</b>. Die Flotte lernt — bestehende Maßnahmen wirken. Kontinuierliches Monitoring beibehalten.`
-    };
-
-    const allTips = [trendTip, ...tips].sort((a,b)=>{
-      if (a.priority === 0) return -1;
-      if (b.priority === 0) return 1;
-      return a.priority - b.priority;
-    });
-
-    const totalSavings = sumBy(tips, t=>t.savings);
-
-    let html = `
-      <h1 style="font-weight:900;font-size:32px;letter-spacing:-0.5px;margin:0 0 4px;">Spar-Tipps &amp; Handlungsempfehlungen</h1>
-      <p style="margin:0 0 18px;color:var(--ink-3);font-size:14px;">Konkrete, umsetzbare Maßnahmen mit geschätztem Einsparpotential</p>
-
-      <div class="alert-box good">
-        <div class="icon">€</div>
-        <div class="body">
-          <h4 style="font-size:20px;">Geschätztes Einsparpotential: <b>${eu(totalSavings)} / ${MONATE_TXT}</b></h4>
-          <p>
-            Hochgerechnet auf 12 Monate: <b>${eu(totalSavings * 2)}</b>. Das entspricht <b>${pct(totalSavings/STATS.eur)}</b> der aktuellen Lade-Kosten — durch reine Verhaltensänderungen (Stations-Auswahl &amp; Idle-Vermeidung), ohne Investition.
-          </p>
-        </div>
-      </div>
-
-      ${allTips.map((t,i) => {
-        const isWin = t.priority === 0;
-        return `
-        <div class="card ${isWin ? 'success' : t.priority === 1 ? 'alert' : 'accent'}">
-          <div class="card-h">
-            <h3>${isWin ? '' : `<span style="display:inline-block;width:28px;height:28px;background:${t.priority===1?'var(--warn)':'var(--ink)'};color:${t.priority===1?'white':'var(--yellow)'};text-align:center;line-height:28px;font-weight:900;font-size:14px;margin-right:8px;">${t.priority}</span>`}${t.title}</h3>
-            <span class="h-sub">
-              Impact: <b style="color:${t.impact==='hoch'?'var(--warn)':t.impact==='mittel'?'var(--info)':'var(--ink-3)'};">${t.impact}</b>
-              ${t.savings > 0 ? `· Spar-Potential: <b style="color:var(--good);">${eu(t.savings)}</b>` : ''}
-              · Zielgruppe: <b>${t.target}</b>
-            </span>
-          </div>
-          <div style="font-size:14px;line-height:1.6;color:var(--ink-2);">${t.body}</div>
-        </div>`;
-      }).join('')}
-
-      <!-- Implementation checklist -->
-      <div class="card">
-        <div class="card-h"><h3>Umsetzungs-Checkliste</h3><span class="h-sub">konkrete nächste Schritte</span></div>
-        <table class="dt">
-          <thead><tr><th>Aktion</th><th>Zielgruppe</th><th>Aufwand</th><th class="num">Erwartete Ersparnis</th><th>Fristen</th></tr></thead>
-          <tbody>
-            <tr><td><b>Routen-Coaching</b> für Top-3 Zeit-Tarif-Verursacher</td><td>${driverList.slice(0,3).map(d=>d.name).join(', ')}</td><td>1 Std/Fahrer</td><td class="num"><b>${eu(sumBy(driverList.slice(0,3), d=>d.eur*0.45))}</b> / 6 Mo</td><td>diese Woche</td></tr>
-            <tr><td><b>Push-Notifications</b> für Idle-Vermeidung aktivieren</td><td>alle Fahrer mit Tesla-App</td><td>15 min</td><td class="num"><b>${eu(sumBy(IDLE_PENALTIES, r=>r.eu))}</b> / 6 Mo</td><td>diese Woche</td></tr>
-            <tr><td><b>Innsbruck-SC-Alternativen</b> kommunizieren (Telfs, Wattens)</td><td>IL-LC1 Fahrer</td><td>30 min</td><td class="num"><b>${eu(zeitSess.filter(s=>s.st && s.st.includes('Innsbruck')).reduce((a,s)=>a+s.eu, 0)*0.45)}</b> / 6 Mo</td><td>diese Woche</td></tr>
-            <tr><td><b>Monatsreport</b> automatisiert an Fahrer mit &gt; €30 vermeidbare Kosten</td><td>3-5 Fahrer</td><td>einmalig</td><td class="num">~ ${eu(STATS.eur*0.08)} / 6 Mo</td><td>nächster Monat</td></tr>
-            <tr><td><b>Heim-Lade-Anteil</b> erhöhen wo betrieblich möglich</td><td>Standort-Fahrer</td><td>laufend</td><td class="num">~ ${eu(STATS.eur*0.05)}</td><td>Q3 2026</td></tr>
-          </tbody>
-        </table>
-      </div>
-    `;
-    host.innerHTML = html;
-  }
-
-  // ============================================================================
   // INIT & TAB SWITCHING
   // ============================================================================
   function init() {
@@ -713,7 +550,6 @@
         case 'blockier':   renderBlockier(host); break;
         case 'effizienz':  window.LCApp.renderEffizienz(host); break;
         case 'tipps':      window.LCApp.renderTipps(host); break;
-        case 'spartipps':  renderSpartipps(host); break;
       }
       renderedTabs.add(tab);
       // Universelle Tab-Suche an alle Tabs außer dem Detail-Tab (hat eigene Filter) anhängen
@@ -737,6 +573,6 @@
 
   window.LCApp = window.LCApp || {};
   Object.assign(window.LCApp, {
-    init, renderFahrzeuge, renderFahrer, renderStandorte, renderBlockier, renderSpartipps
+    init, renderFahrzeuge, renderFahrer, renderStandorte, renderBlockier
   });
 })();
