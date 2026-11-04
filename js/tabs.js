@@ -12,10 +12,13 @@
     svgBars, svgStackedBars, svgDonut, svgSpark, svgHeatmap, svgAreaLine
   } = D;
 
+  // SK fehlte bis 04.11.2026 -> die Legende rendert dann "background:undefined".
+  // Neue Laender bitte hier ergaenzen; CFARBE() faengt es sonst mit Grau ab.
   const COUNTRY_COLORS = {
     AT:'#FFE500', DE:'var(--c-de,#0d0d0d)', CZ:'#1e5a9e', SI:'#1f7a3c',
-    IT:'#c0392b', HU:'#8a4a8a', HR:'#e87a30'
+    IT:'#c0392b', HU:'#8a4a8a', HR:'#e87a30', SK:'#2a9d8f'
   };
+  const CFARBE = k => COUNTRY_COLORS[k] || '#888';
 
   const STATS = masterStats();
 
@@ -46,7 +49,7 @@
 
     // Country donut
     const donut = countryAggs.map(c => ({
-      value: c.eur, color: COUNTRY_COLORS[c.key] || '#888'
+      value: c.eur, color: CFARBE(c.key)
     }));
 
     let html = `
@@ -112,7 +115,7 @@
               ${countryAggs.slice(0,7).map(c => {
                 const cpct = c.eur / STATS.eur;
                 return `<li style="margin-bottom:5px;display:flex;align-items:center;gap:6px;">
-                  <span style="width:10px;height:10px;background:${COUNTRY_COLORS[c.key]};border:1px solid var(--ink);flex-shrink:0;"></span>
+                  <span style="width:10px;height:10px;background:${CFARBE(c.key)};border:1px solid var(--ink);flex-shrink:0;"></span>
                   <b style="width:24px;flex-shrink:0;">${c.key}</b>
                   <span style="flex:1;min-width:0;color:var(--ink-3);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${c.n} sess</span>
                   <b style="font-variant-numeric:tabular-nums;flex-shrink:0;min-width:78px;text-align:right;">${eu(c.eur)}</b>
@@ -253,7 +256,7 @@
 
     // By country
     const countryAggs = byField('c', sess).filter(c => c.eur > 0);
-    const donutSeg = countryAggs.map(c => ({ value:c.eur, color: COUNTRY_COLORS[c.key] || '#888' }));
+    const donutSeg = countryAggs.map(c => ({ value:c.eur, color: CFARBE(c.key) }));
 
     // By vehicle in this month
     const vehMonth = byField('k', sess).filter(v => v.key && v.key !== '(?)');
@@ -349,7 +352,7 @@
             <div style="flex-shrink:0;">${svgDonut(donutSeg, { size:130, stroke:24 })}</div>
             <ul style="list-style:none;padding:0;margin:0;font-size:13px;flex:1;">
               ${countryAggs.map(c => `<li style="margin-bottom:5px;display:flex;align-items:center;gap:5px;">
-                <span style="width:10px;height:10px;background:${COUNTRY_COLORS[c.key]};border:1px solid var(--ink);flex-shrink:0;"></span>
+                <span style="width:10px;height:10px;background:${CFARBE(c.key)};border:1px solid var(--ink);flex-shrink:0;"></span>
                 <b style="width:22px;flex-shrink:0;">${c.key}</b>
                 <span style="flex:1;min-width:0;color:var(--ink-3);font-size:11px;">${c.n}S</span>
                 <b style="flex-shrink:0;">${eu(c.eur)}</b>

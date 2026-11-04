@@ -12,10 +12,13 @@
     svgBars, svgStackedBars, svgDonut, svgSpark, svgHeatmap
   } = D;
 
+  // SK fehlte bis 04.11.2026 -> die Legende rendert dann "background:undefined".
+  // Neue Laender bitte hier ergaenzen; CFARBE() faengt es sonst mit Grau ab.
   const COUNTRY_COLORS = {
     AT:'#FFE500', DE:'#0d0d0d', CZ:'#1e5a9e', SI:'#1f7a3c',
-    IT:'#c0392b', HU:'#8a4a8a', HR:'#e87a30'
+    IT:'#c0392b', HU:'#8a4a8a', HR:'#e87a30', SK:'#2a9d8f'
   };
+  const CFARBE = k => COUNTRY_COLORS[k] || '#888';
 
   const STATS = masterStats();
 
@@ -48,7 +51,7 @@
         <div class="kpi">
           <div class="label">Ø Sessions / Fzg</div>
           <div class="val">${num(STATS.n/vehicles.length, 0)}</div>
-          <div class="extra">~ ${num(STATS.n/vehicles.length/6, 1)} pro Monat</div>
+          <div class="extra">~ ${num(STATS.n/vehicles.length/MONTHS_N, 1)} pro Monat</div>
         </div>
         <div class="kpi">
           <div class="label">Top-Verbraucher</div>
@@ -94,7 +97,7 @@
             <th>FIN</th><th>Länder</th>
             <th class="num">Sess.</th><th class="num">kWh</th><th class="num">Ø/Sess</th>
             <th class="num">Gesamt</th><th class="num">Ø €/kWh</th>
-            <th class="num">Zeit-%</th><th>6-Mon-Verlauf</th>
+            <th class="num">Zeit-%</th><th>${MONTHS_N}-Mon-Verlauf</th>
           </tr></thead>
           <tbody>
           ${vehicles.map((v,i) => `<tr>
@@ -136,38 +139,15 @@
       return svgSpark(monthly, { color:'#0d0d0d', width:90, height:24 });
     }
 
-    // Most efficient (lowest €/kWh)
-    const efficient = [...drivers].filter(d=>d.kwh > 100).sort((a,b)=>a.avg_eur_kwh-b.avg_eur_kwh);
-    // Most blockierer (highest zeit_eur)
-    const blockierer = [...drivers].filter(d=>d.vermeidbar > 0).sort((a,b)=>b.vermeidbar-a.vermeidbar);
+    // Hinweis: die drei Kopf-Kacheln (Effizientester Fahrer / Hoechste vermeidbare
+    // Kosten / Top-Verbraucher) wurden am 04.11.2026 auf Wunsch des Users entfernt.
+    // Die Aussagen stehen jetzt belastbar im Reiter Effizienz; die alte
+    // "Effizientester Fahrer"-Kachel war ausserdem falsch, weil sie die
+    // 0,00-EUR-Positionen mitgewertet hat.
 
     let html = `
       <h1 style="font-weight:900;font-size:32px;letter-spacing:-0.5px;margin:0 0 4px;">Fahrer-Analyse</h1>
       <p style="margin:0 0 18px;color:var(--ink-3);font-size:14px;"><b>${drivers.length}</b> aktive Fahrer · Kennzahlen + Effizienz-Ranking</p>
-
-      <div class="grid-3">
-        <div class="alert-box good">
-          <div class="icon" style="font-size:18px;">★</div>
-          <div class="body">
-            <h4>Effizientester Fahrer</h4>
-            <p><b>${efficient[0].key}</b> mit <b>${efficient[0].avg_eur_kwh.toFixed(2)} €/kWh</b> über ${efficient[0].n} Sessions. Lädt fast ausschließlich an günstigen kWh-Tarif-SCs.</p>
-          </div>
-        </div>
-        <div class="alert-box ${blockierer.length && blockierer[0].vermeidbar/blockierer[0].eur > 0.20 ? '' : 'info'}">
-          <div class="icon">!</div>
-          <div class="body">
-            <h4>Höchste vermeidbare Kosten</h4>
-            <p><b>${blockierer[0].key}</b>: <b>${eu(blockierer[0].vermeidbar)}</b> durch Zeit-Tarif-Sessions (${blockierer[0].zeit_n}× ${pct(blockierer[0].vermeidbar/blockierer[0].eur)} der Gesamtkosten dieses Fahrers).</p>
-          </div>
-        </div>
-        <div class="alert-box info">
-          <div class="icon">i</div>
-          <div class="body">
-            <h4>Top-Verbraucher</h4>
-            <p><b>${drivers[0].key}</b> mit <b>${eu(drivers[0].eur)}</b> über ${drivers[0].n} Sessions. ${pct(drivers[0].eur/STATS.eur)} aller Lade-Kosten.</p>
-          </div>
-        </div>
-      </div>
 
       <div class="card">
         <div class="card-h"><h3>Vollständige Fahrer-Tabelle</h3><span class="h-sub">${drivers.length} Fahrer · sortiert nach Gesamtkosten</span></div>
@@ -177,7 +157,7 @@
             <th class="num">Sess.</th><th class="num">kWh</th>
             <th class="num">Gesamt</th><th class="num">Ø €/kWh</th>
             <th class="num">Zeit-Sess</th><th class="num">Vermeidbar</th>
-            <th>6-Mon-Verlauf</th>
+            <th>${MONTHS_N}-Mon-Verlauf</th>
           </tr></thead>
           <tbody>
           ${drivers.map((d,i) => {

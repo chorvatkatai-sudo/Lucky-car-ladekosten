@@ -68,7 +68,7 @@
     A1:'Netzwahl – Alternative belegt',
     A2:'Netzwahl – wahrscheinlich',
     B:'Zeitfenster Peak → Off-Peak',
-    C:'Blockier- und Zeitgebühren'
+    C:'Stehenbleiben nach Ladeende'
   };
 
   function monatsChart(){
@@ -121,7 +121,8 @@
     const moeglich = g.ist_eur - g.vermeidbar;
     const dkv = A.betreiber.filter(b => b.via === 'DKV');
     const dkvKwh = dkv.reduce((a,b)=>a+b.kwh,0);
-    const dkvEur = dkv.reduce((a,b)=>a+b.eur,0);
+    const dkvEur = dkv.reduce((a,b)=>a+(b.eur_eff!=null?b.eur_eff:b.eur),0);   // inkl. Ladezeit-Minuten
+    const dkvZeit = dkv.reduce((a,b)=>a+(b.zeitanteil||0),0);
     const tsl = A.betreiber.find(b => b.via === 'Tesla') || {kwh:0,eur:0,preis:0};
 
     let h = `
@@ -162,7 +163,7 @@
         <div class="kpi">
           <div class="label">Positionen bewertet</div>
           <div class="val">${num(g.n_energie,0)}<span class="u">Energie</span></div>
-          <div class="extra">+ ${num(g.n_zeit,0)} Zeit-/Blockierpositionen</div>
+          <div class="extra">+ ${num(g.n_zeit,0)} Minutenpositionen</div>
         </div>
       </div>
 
@@ -205,8 +206,31 @@
             Säule ist also nachweislich erreichbar. „Wahrscheinlich“ = Ort ohne eigenen Tesla-Nachweis.<br>
             <b>Zeitfenster</b> = Ladungen, die schon unter ${ekwh(K.referenz)} lagen, aber tagsüber statt
             nachts erfolgten (${K.offpeak_von}–0${K.offpeak_bis} Uhr sind ${ekwh(K.referenz_off)}).<br>
-            <b>Blockieren</b> = Positionen, die gar keine Energie kaufen, sondern Standzeit.
+            <b>Stehenbleiben</b> = nur der Teil der Minutenpositionen, der <b>nicht</b> Ladezeit war,
+            plus die Tesla-Überlastungsgebühren.
           </p>
+          <div class="alert-box info" style="margin:12px 0 0;">
+            <div class="icon">i</div>
+            <div class="body">
+              <h4>Korrektur vom 04.11.2026: Minuten sind meist Ladezeit, nicht Blockieren</h4>
+              <p>
+                Die DKV-Minutenpositionen (Codes 0965/0966, 0 kWh) sahen zunächst nach Blockiergebühren aus.
+                Die Prüfung an den Rechnungen zeigt etwas anderes: sie kosten durchgehend rund
+                <b>0,09 €/Minute</b> und liegen bei <b>475 von 486</b> Positionen neben einer Energiezeile
+                derselben Ladung. Rechnet man die geladene Energie auf die Minuten um, ergibt sich eine
+                Ladeleistung mit dem <b>Median von 58 kW</b> — die Minuten sind also überwiegend die
+                <b>echte Ladedauer</b> und wären auch bei vorbildlichem Verhalten angefallen.
+                Es ist ein Minutenbestandteil des DKV-Tarifs, keine Strafe.<br>
+                Deshalb zählt hier nur noch die Standzeit <b>über</b> der benötigten Ladedauer
+                (gerechnet mit konservativen 11 kW, also eher zu wenig als zu viel).
+                Von ${eu(A.gesamt.zeit_brutto_eur)} Minutenkosten sind
+                <b>${eu(A.gesamt.zeit_lade_eur)} Ladezeit</b> und
+                <b>${eu(A.gesamt.zeit_stand_eur)} Standzeit</b>.
+                Die Ladezeit ist nicht verschwunden — sie steckt jetzt im effektiven Preis je kWh und
+                damit in der Netzwahl, denn am Supercharger gibt es überhaupt keinen Minutenanteil.
+              </p>
+            </div>
+          </div>
         </div>
 
         <div class="card">
@@ -216,7 +240,7 @@
             <thead><tr><th>Kanal</th><th class="num">kWh</th><th class="num">€</th><th class="num">€/kWh</th></tr></thead>
             <tbody>
               <tr><td><b>Tesla-Supercharger</b></td><td class="num">${num(tsl.kwh,0)}</td><td class="num">${eu(tsl.eur)}</td><td class="num"><b style="color:var(--good);">${ekwh(tsl.preis)}</b></td></tr>
-              <tr><td><b>DKV-Karte (Roaming)</b></td><td class="num">${num(dkvKwh,0)}</td><td class="num">${eu(dkvEur)}</td><td class="num"><b style="color:#ff7a6e;">${ekwh(dkvEur/dkvKwh)}</b></td></tr>
+              <tr><td><b>DKV-Karte (Roaming)</b><br><span class="small muted">inkl. ${eu(dkvZeit)} Ladezeit-Minuten</span></td><td class="num">${num(dkvKwh,0)}</td><td class="num">${eu(dkvEur)}</td><td class="num"><b style="color:#ff7a6e;">${ekwh(dkvEur/dkvKwh)}</b></td></tr>
             </tbody>
           </table>
           <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--rule);">
@@ -255,7 +279,7 @@
           <thead><tr>
             <th>Monat</th><th class="num">kWh</th><th class="num">Ø €/kWh</th>
             <th class="num">Ladekosten</th><th class="num">vermeidbar</th><th class="num">Anteil</th>
-            <th class="num">Netzwahl</th><th class="num">Zeitfenster</th><th class="num">Blockieren</th>
+            <th class="num">Netzwahl</th><th class="num">Zeitfenster</th><th class="num">Stehenbleiben</th>
           </tr></thead>
           <tbody>
             ${A.je_monat.map(r => `
@@ -345,22 +369,29 @@
           </table>
         </div>
         <div class="card">
-          <div class="card-h"><h3>Blockier- und Zeitgebühren</h3>
-            <span class="h-sub">Positionen ohne jede Energie</span>
+          <div class="card-h"><h3>Stehenbleiben nach Ladeende</h3>
+            <span class="h-sub">Standzeit über der benötigten Ladedauer</span>
             <span class="h-meta">${eu(g.topf.C)}</span></div>
           <table class="dt">
-            <thead><tr><th>Fahrer</th><th class="num">Positionen</th><th class="num">Summe</th><th class="num">größte</th></tr></thead>
+            <thead><tr><th>Fahrer</th><th class="num">Fälle</th><th class="num">Standzeit</th>
+              <th class="num">größter Fall</th><th class="num">davon Ladezeit (Tarif)</th></tr></thead>
             <tbody>
               ${A.je_fahrer.filter(f=>f.zeit_eur>0).sort((a,b)=>b.zeit_eur-a.zeit_eur).map(f=>`
-                <tr><td><b>${esc(f.name)}</b></td><td class="num">${num(f.n_zeit,0)}</td>
-                <td class="num"><b>${eu(f.zeit_eur)}</b></td><td class="num">${eu(f.zeit_max)}</td></tr>`).join('')}
+                <tr><td><b>${esc(f.name)}</b></td><td class="num">${num(f.n_stand||0,0)}</td>
+                <td class="num"><b style="color:#ff7a6e;">${eu(f.zeit_eur)}</b></td>
+                <td class="num">${eu(f.zeit_max)}</td>
+                <td class="num muted">${eu(f.zeit_lade_eur||0)}</td></tr>`).join('')}
             </tbody>
+            <tfoot><tr><td><b>Summe</b></td><td class="num"></td>
+              <td class="num"><b>${eu(g.topf.C)}</b></td><td class="num"></td>
+              <td class="num"><b>${eu(A.gesamt.zeit_lade_eur)}</b></td></tr></tfoot>
           </table>
           <p class="small muted" style="margin:11px 0 0;">
-            Diese Positionen bezahlen reine Standzeit — bei DKV die Produktcodes 0965/0966,
-            bei Tesla die Überlastungsgebühr. Sie sind praktisch vollständig vermeidbar:
-            nach Ladeende abstecken und wegfahren. Tesla gewährt dafür fünf Minuten Karenz
-            und verlangt in Österreich bis zu 0,50 €/Minute ohne Obergrenze.
+            Die letzte Spalte ist <b>kein</b> Vorwurf: das ist der Minutenanteil, der auf die echte
+            Ladedauer entfällt und beim DKV-Tarif zwangsläufig anfällt. Er zählt in der Netzwahl mit,
+            nicht hier. Vermeidbar ist die Spalte „Standzeit“ — nach Ladeende abstecken und wegfahren.
+            Tesla gewährt fünf Minuten Karenz und verlangt in Österreich danach bis zu 0,50 €/Minute
+            ohne Obergrenze; Wien Energie 0,05 €/Minute ab drei Stunden an DC, gedeckelt bei 25 €.
           </p>
         </div>
       </div>
@@ -371,7 +402,8 @@
           <span class="h-sub">sortiert nach Preis · ab 50 kWh</span></div>
         <table class="dt">
           <thead><tr><th>Betreiber</th><th>Zugang</th><th class="num">Ladungen</th>
-            <th class="num">kWh</th><th class="num">€</th><th class="num">Ø €/kWh</th>
+            <th class="num">kWh</th><th class="num">€ Energie</th><th class="num">+ Minuten</th>
+            <th class="num">Ø €/kWh effektiv</th>
             <th class="num">vermeidbar</th><th>gegen Referenz</th></tr></thead>
           <tbody>
             ${A.betreiber.map(b => {
@@ -384,6 +416,7 @@
                 <td class="num">${num(b.n,0)}</td>
                 <td class="num">${num(b.kwh,0)}</td>
                 <td class="num">${eu(b.eur)}</td>
+                <td class="num" style="color:var(--ink-3);">${b.zeitanteil>0?eu(b.zeitanteil):'—'}</td>
                 <td class="num"><b style="color:${b.preis>0.7?'#ff7a6e':b.preis>0.5?'var(--ink)':'var(--good)'};">${ekwh(b.preis)}</b></td>
                 <td class="num">${b.vermeidbar > 0 ? eu(b.vermeidbar) : '—'}</td>
                 <td><span class="bar warn" style="width:120px;"><i style="width:${w.toFixed(0)}%"></i></span>
@@ -412,6 +445,12 @@
           <p style="margin:0 0 9px;"><b>Vier Töpfe ohne Überschneidung.</b> Jede Position fällt in genau einen Topf,
           deshalb lässt sich die Summe nicht doppelt zählen. Positionen über ${ekwh(K.referenz)} zählen nur
           die Differenz zur Referenz, nicht den ganzen Betrag.</p>
+          <p style="margin:0 0 9px;"><b>Der Preis je kWh ist der effektive Preis.</b> Wo DKV zusätzlich Minuten
+          abrechnet, ist der auf die echte Ladedauer entfallende Anteil in den kWh-Preis eingerechnet
+          (${eu(A.gesamt.zeit_lade_eur)} insgesamt). Sonst erschiene DKV günstiger als es ist. Nur die
+          Standzeit darüber hinaus (${eu(A.gesamt.zeit_stand_eur)}) steht als eigener Topf da.
+          Die Aufteilung nutzt konservative 11 kW als Referenzleistung — dadurch gilt möglichst viel
+          als unvermeidbare Ladezeit und möglichst wenig als Vorwurf an die Fahrer.</p>
           <p style="margin:0 0 9px;"><b>Nur Österreich wird bewertet.</b> Die Referenzpreise sind österreichische
           Preise. Die ${eu(g.ausland_eur)} Auslandsladungen werden deshalb <b>nicht</b> als vermeidbar gezählt —
           sie stehen im Reiter Ausland.</p>
@@ -494,13 +533,14 @@
           Bei der DKV-Karte bringt die Nacht dagegen nichts — dort gibt es kein Nachtfenster.`});
     }
 
-    // 4) Blockieren
+    // 4) Stehenbleiben nach Ladeende
     if (f.zeit_eur > 20) {
       t.push({p:f.zeit_eur > 150 ? 1 : 3, kopf:'Nach Ladeende abstecken und wegfahren',
         spar:f.zeit_eur,
-        body:`Auf dich entfallen <b>${eu(f.zeit_eur)}</b> in ${num(f.n_zeit,0)} Positionen, die
-          <b>keine Energie</b> enthalten, sondern reine Standzeit — die größte einzelne mit
-          ${eu(f.zeit_max)}. Das ist vollständig vermeidbar: Benachrichtigung „Ladung beendet“
+        body:`Auf dich entfallen <b>${eu(f.zeit_eur)}</b> für Standzeit, die <b>über</b> der für deine
+          geladene Energie nötigen Ladedauer lag — der größte Einzelfall mit
+          ${eu(f.zeit_max)}. (Die reine Ladezeit von ${eu(f.zeit_lade_eur||0)} ist hier bewusst
+          <b>nicht</b> enthalten, die fällt beim DKV-Tarif zwangsläufig an.) Das ist vollständig vermeidbar: Benachrichtigung „Ladung beendet“
           in der App aktivieren und den Platz räumen. Tesla gibt fünf Minuten Karenz und verlangt
           danach bis zu 0,50 €/Minute ohne Obergrenze; Wien Energie rechnet 0,05 €/Minute ab
           drei Stunden an DC und fünf Stunden an AC, gedeckelt mit 25 € je Vorgang.`});
@@ -557,7 +597,7 @@
             DKV-Karte im Schnitt deutlich mehr. Freigegebene Supercharger in Österreich sind
             <b>für alle CCS-fähigen Fahrzeuge</b> offen, nicht nur für Teslas — eine Mitgliedschaft
             ist zum Laden keine Voraussetzung. Zweitgrößter Hebel: nach Ladeende <b>abstecken</b>
-            (${eu(g.topf.C)} reine Standzeit). Drittgrößter: <b>nach 22 Uhr</b> laden
+            (${eu(g.topf.C)} Standzeit über der nötigen Ladedauer). Drittgrößter: <b>nach 22 Uhr</b> laden
             (${ekwh(K.referenz_off)} statt ${ekwh(K.referenz)}).
           </p>
         </div>
