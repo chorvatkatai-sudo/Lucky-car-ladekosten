@@ -698,6 +698,13 @@
     const blockierPct = (blockierEur / STATS.eur * 100).toFixed(0);
     document.getElementById('badge-blockier').textContent = blockierPct + ' %';
 
+    // Badge fuer Effizienz - Anteil der vermeidbaren Kosten
+    const eBadge = document.getElementById('badge-effizienz');
+    if (eBadge && window.LC_ANALYSE) {
+      eBadge.textContent = (window.LC_ANALYSE.gesamt.vermeidbar_quote * 100).toFixed(0) + ' %';
+      eBadge.classList.remove('live');
+    }
+
     // Badge fuer Ausland - Anteil der Auslandskosten an den Gesamtkosten
     const aBadge = document.getElementById('badge-ausland');
     if (aBadge) {
@@ -724,6 +731,8 @@
         case 'standorte':  window.LCApp.renderStandorte(host); break;
         case 'ausland':    window.LCApp.renderAusland(host); break;
         case 'blockier':   renderBlockier(host); break;
+        case 'effizienz':  window.LCApp.renderEffizienz(host); break;
+        case 'tipps':      window.LCApp.renderTipps(host); break;
         case 'spartipps':  renderSpartipps(host); break;
       }
       renderedTabs.add(tab);

@@ -1,0 +1,7 @@
+# Sicherungen, die schreibe_data_js.py neben die erzeugte Datei legt
+js/data.js.vor-*
+js/*.bak-*
+
+# lokale Testartefakte
+.playwright-mcp/
+*.png.tmp

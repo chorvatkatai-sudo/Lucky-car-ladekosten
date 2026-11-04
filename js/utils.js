@@ -9,7 +9,7 @@
   const eu = v => '€ ' + v.toLocaleString('de-AT', {minimumFractionDigits:2, maximumFractionDigits:2});
   const num = (v, dec=0) => v.toLocaleString('de-AT', {minimumFractionDigits:dec, maximumFractionDigits:dec});
   const pct = v => (v*100).toFixed(0) + ' %';
-  const pct1 = v => (v*100).toFixed(1) + ' %';
+  const pct1 = v => (v*100).toFixed(1).replace('.', ',') + ' %';   // de-AT: Komma
 
   const MONTHS = [...new Set(SESSIONS.map(s=>s.m))].sort();
   const MONTH_LABELS = {

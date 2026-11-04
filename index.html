@@ -279,7 +279,13 @@
   .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--yellow);color:#0d0d0d;font-family:'Roboto Condensed';font-weight:800;font-size:14px;padding:12px 22px;z-index:500;box-shadow:0 12px 40px rgba(0,0,0,.5);opacity:0;transition:opacity .2s,transform .2s;}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(-4px);}
 
-  @media print{.tab-nav,.filter-bar{display:none;}.tab-section{display:block !important;page-break-after:always;}}
+  @media print{
+    .tab-nav,.filter-bar{display:none;}
+    .tab-section{display:block !important;page-break-after:always;}
+    /* Jedes Fahrerblatt im Reiter Tipps auf eine eigene Seite - die Blaetter
+       werden einzeln an die Mitarbeiter ausgegeben. */
+    .fahrerblatt{page-break-before:always;page-break-inside:avoid;}
+  }
 </style>
 </head>
 <body>
@@ -308,6 +314,8 @@
   <button data-tab="standorte">Standorte</button>
   <button data-tab="ausland">Ausland <span class="tab-badge" id="badge-ausland">—</span></button>
   <button data-tab="blockier">Blockier-Kosten <span class="tab-badge" id="badge-blockier">—</span></button>
+  <button data-tab="effizienz">Effizienz <span class="tab-badge" id="badge-effizienz">—</span></button>
+  <button data-tab="tipps">Tipps</button>
   <button data-tab="spartipps">Spar-Tipps</button>
 </nav>
 
@@ -321,6 +329,8 @@
   <section class="tab-section" id="tab-standorte"></section>
   <section class="tab-section" id="tab-ausland"></section>
   <section class="tab-section" id="tab-blockier"></section>
+  <section class="tab-section" id="tab-effizienz"></section>
+  <section class="tab-section" id="tab-tipps"></section>
   <section class="tab-section" id="tab-spartipps"></section>
 </main>
 
@@ -331,6 +341,7 @@
   }
 </script>
 <script src="js/data.js"></script>
+<script src="js/analyse.js"></script>
 <script>
   // Vom Nutzer hochgeladene Tesla-Sessions (lokaler Cache) VOR den Auswertungen einmischen,
   // damit Übersicht/Monat/Fahrer/… den vollständigen Stand berechnen.
@@ -353,6 +364,7 @@
 <script src="js/geo_at.js"></script>
 <script src="js/karte.js"></script>
 <script src="js/ausland.js"></script>
+<script src="js/effizienz.js"></script>
 <script>
   function __lcBoot(){
     LCApp.init();
