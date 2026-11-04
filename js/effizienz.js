@@ -151,7 +151,8 @@
         <div class="kpi">
           <div class="label">Ladekosten IST</div>
           <div class="val">${eu(g.ist_eur)}</div>
-          <div class="extra">${num(g.ist_kwh,0)} kWh · ${ekwh(g.preis_schnitt)}</div>
+          <div class="extra">${num(g.ist_kwh,0)} kWh · ${ekwh(g.preis_schnitt)}<br>
+            <span style="color:var(--ink-4);">inkl. Idle-Gebühren, daher ${eu(A.idle_eur||0)} über dem Kopfbereich</span></div>
         </div>
         <div class="kpi good">
           <div class="label">wäre möglich gewesen</div>
