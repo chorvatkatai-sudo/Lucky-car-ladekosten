@@ -55,7 +55,10 @@
   // Hilfsdarstellungen
   // ==========================================================================
   // Gestapelter Monatsbalken: A1 / A2 / B / C
-  const FARBE = {A1:'#ff5a4d', A2:'#ff9a4d', B:'#4d96e0', C:'#FFE500'};
+  // Ruhige Palette: Gelbtoene fuer die Netzwahl (der grosse, nicht
+  // verhaltensbedingte Teil), Blau fuers Zeitfenster, Grau fuers
+  // Stehenbleiben. Bewusst KEIN Rot - es geht um Potenzial, nicht um Schuld.
+  const FARBE = {A1:'#FFE500', A2:'#C9B200', B:'#6FA8DC', C:'#9A9DA4'};
   const TOPF_NAME = {
     A1:'Netzwahl – Alternative belegt',
     A2:'Netzwahl – wahrscheinlich',
@@ -102,7 +105,7 @@
 
   function spark(reihe){
     const vals = reihe.map(r => r.v);
-    return D.svgSpark(vals, {width:86, height:22, color:'var(--warn)'});
+    return D.svgSpark(vals, {width:86, height:22, color:'var(--ink-3)'});
   }
 
   // ==========================================================================
@@ -118,7 +121,7 @@
     const tsl = A.betreiber.find(b => b.via === 'Tesla') || {kwh:0,eur:0,preis:0};
 
     let h = `
-      <h1 style="font-weight:900;font-size:32px;letter-spacing:-0.5px;margin:0 0 4px;">Lade-Effizienz · vermeidbare Kosten</h1>
+      <h1 style="font-weight:900;font-size:32px;letter-spacing:-0.5px;margin:0 0 4px;">Lade-Effizienz · Einsparpotenzial</h1>
       <p style="margin:0 0 18px;color:var(--ink-3);font-size:14px;">
         ${D.PERIOD_LONG} · ${A.monate.length} Monate · Oktober 2026 nicht in der Wertung ·
         Referenzpreis ${ekwh(K.referenz)} (Tesla-Supercharger Österreich Peak, deckungsgleich mit Wien Energie GO
@@ -126,12 +129,12 @@
       </p>
 
       <div class="kpis" style="grid-template-columns:repeat(6,1fr);">
-        <div class="kpi warn">
-          <div class="label">Vermeidbar gesamt</div>
+        <div class="kpi hi">
+          <div class="label">Einsparpotenzial</div>
           <div class="val">${eu(g.vermeidbar)}</div>
           <div class="extra">${pct1(g.vermeidbar_quote)} der Ladekosten</div>
         </div>
-        <div class="kpi warn">
+        <div class="kpi">
           <div class="label">pro Monat</div>
           <div class="val">${eu(g.pro_monat)}</div>
           <div class="extra">Durchschnitt über ${A.monate.length} Monate</div>
@@ -159,18 +162,44 @@
         </div>
       </div>
 
-      <div class="alert-box">
+      <div class="alert-box good">
         <div class="icon">€</div>
         <div class="body">
-          <h4>${eu(g.vermeidbar)} von ${eu(g.ist_eur)} Ladekosten waren vermeidbar — ${pct1(g.vermeidbar_quote)}</h4>
+          <h4>${eu(g.vermeidbar)} Einsparpotenzial — und ${pct((g.topf.A1+g.topf.A2)/g.vermeidbar)} davon liegt nicht beim Fahrer</h4>
           <p>
-            Der Grund ist zu <b>${pct((g.topf.A1+g.topf.A2)/g.vermeidbar)}</b> nicht das Verhalten der Fahrer, sondern die
-            <b>Wahl des Ladenetzes</b>: über die DKV-Karte wurden ${num(dkvKwh,0)} kWh zu
-            durchschnittlich <b>${ekwh(dkvEur/dkvKwh)}</b> geladen, am Tesla-Supercharger
-            ${num(tsl.kwh,0)} kWh zu <b>${ekwh(tsl.preis)}</b>. Das ist bei gleicher Energiemenge
-            <b>${pct(dkvEur/dkvKwh/tsl.preis - 1)}</b> Aufschlag. Der Tesla-Supercharger ist in Österreich
-            auch für Fremdmarken geöffnet — die Umstellung kostet nichts außer der Gewohnheit.
+            Das Geld geht nicht durch Unachtsamkeit verloren, sondern durch die <b>Wahl des Ladenetzes</b>:
+            über die DKV-Karte wurden ${num(dkvKwh,0)} kWh zu durchschnittlich <b>${ekwh(dkvEur/dkvKwh)}</b>
+            geladen, am Tesla-Supercharger ${num(tsl.kwh,0)} kWh zu <b>${ekwh(tsl.preis)}</b> — bei
+            praktisch gleicher Energiemenge <b>${pct(dkvEur/dkvKwh/tsl.preis - 1)}</b> Aufschlag.
+            Wer die DKV-Karte benutzt hat, hat nichts falsch gemacht; sie war da und sie funktioniert.
+            Die Ersparnis liegt darin, <b>welche Karte vorne im Fahrzeug liegt</b> — eine Entscheidung
+            der Fuhrparkverwaltung, keine Frage der Fahrdisziplin.
           </p>
+        </div>
+      </div>
+
+      <!-- Woran es wirklich liegt -->
+      <div class="card accent" style="margin-bottom:14px;">
+        <div class="card-h"><h3>Woran es liegt</h3>
+          <span class="h-sub">Beschaffung gegen Verhalten</span></div>
+        <div style="display:flex;gap:0;height:30px;border:1px solid var(--rule);margin-bottom:12px;">
+          <div style="flex:${(g.topf.A1+g.topf.A2).toFixed(0)};background:var(--yellow);display:grid;place-items:center;
+                      font-weight:800;font-size:12.5px;color:#0d0d0d;letter-spacing:0.3px;">
+            KARTENWAHL · ${pct((g.topf.A1+g.topf.A2)/g.vermeidbar)}</div>
+          <div style="flex:${g.topf.C.toFixed(0)};background:var(--surface-2);display:grid;place-items:center;
+                      font-weight:700;font-size:12px;color:var(--ink-2);">
+            ${g.topf.C/g.vermeidbar > 0.10 ? 'STEHENBLEIBEN · '+pct(g.topf.C/g.vermeidbar) : ''}</div>
+          <div style="flex:${g.topf.B.toFixed(0)};background:#6FA8DC;display:grid;place-items:center;
+                      font-weight:700;font-size:12px;color:#0d0d0d;">
+            ${g.topf.B/g.vermeidbar > 0.08 ? 'UHRZEIT' : ''}</div>
+        </div>
+        <div style="font-size:13.5px;line-height:1.65;color:var(--ink-2);">
+          <b>${pct((g.topf.A1+g.topf.A2+g.topf.B)/g.vermeidbar)}</b> des Potenzials hängt an Tarif und Netz —
+          daran ändert kein Fahrer etwas, solange er die Karte benutzt, die er bekommen hat.
+          Nur <b>${pct(g.topf.C/g.vermeidbar)}</b> (${eu(g.topf.C)} auf ${A.monate.length} Monate und
+          ${A.je_fahrer.length} Fahrer, also rund ${eu(g.topf.C/A.monate.length/A.je_fahrer.length)}
+          pro Fahrer und Monat) entfallen auf Standzeit nach Ladeende.
+          Die folgenden Auswertungen zeigen deshalb <b>Potenzial</b>, keine Verfehlungen.
         </div>
       </div>
 
@@ -212,7 +241,7 @@
             <thead><tr><th>Kanal</th><th class="num">kWh</th><th class="num">€</th><th class="num">€/kWh</th></tr></thead>
             <tbody>
               <tr><td><b>Tesla-Supercharger</b></td><td class="num">${num(tsl.kwh,0)}</td><td class="num">${eu(tsl.eur)}</td><td class="num"><b style="color:var(--good);">${ekwh(tsl.preis)}</b></td></tr>
-              <tr><td><b>DKV-Karte (Roaming)</b><br><span class="small muted">inkl. ${eu(dkvZeit)} Ladezeit-Minuten</span></td><td class="num">${num(dkvKwh,0)}</td><td class="num">${eu(dkvEur)}</td><td class="num"><b style="color:#ff7a6e;">${ekwh(dkvEur/dkvKwh)}</b></td></tr>
+              <tr><td><b>DKV-Karte (Roaming)</b><br><span class="small muted">inkl. ${eu(dkvZeit)} Ladezeit-Minuten</span></td><td class="num">${num(dkvKwh,0)}</td><td class="num">${eu(dkvEur)}</td><td class="num"><b style="color:var(--yellow);">${ekwh(dkvEur/dkvKwh)}</b></td></tr>
             </tbody>
           </table>
           <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--rule);">
@@ -237,7 +266,7 @@
 
       <!-- Monatsverlauf -->
       <div class="card accent">
-        <div class="card-h"><h3>Vermeidbare Kosten je Monat</h3>
+        <div class="card-h"><h3>Einsparpotenzial je Monat</h3>
           <span class="h-sub">Balken gestapelt nach Topf · unter dem Monat Anteil und Ø-Preis</span>
           <span class="h-meta">Ø ${eu(g.pro_monat)} / Monat</span></div>
         <div class="chart-wrap">${monatsChart()}</div>
@@ -250,7 +279,7 @@
         <table class="dt">
           <thead><tr>
             <th>Monat</th><th class="num">kWh</th><th class="num">Ø €/kWh</th>
-            <th class="num">Ladekosten</th><th class="num">vermeidbar</th><th class="num">Anteil</th>
+            <th class="num">Ladekosten</th><th class="num">Potenzial</th><th class="num">Anteil</th>
             <th class="num">Netzwahl</th><th class="num">Zeitfenster</th><th class="num">Stehenbleiben</th>
           </tr></thead>
           <tbody>
@@ -260,7 +289,7 @@
                 <td class="num">${num(r.kwh,0)}</td>
                 <td class="num">${ekwh(r.preis)}</td>
                 <td class="num">${eu(r.ist_eur)}</td>
-                <td class="num"><b style="color:#ff7a6e;">${eu(r.vermeidbar)}</b></td>
+                <td class="num"><b>${eu(r.vermeidbar)}</b></td>
                 <td class="num">${pct1(r.quote)}</td>
                 <td class="num">${eu(r.topf.A1 + r.topf.A2)}</td>
                 <td class="num">${eu(r.topf.B)}</td>
@@ -281,16 +310,16 @@
         </table>
       </div>
 
-      <!-- Fahrer-Ranking nach Betrag -->
+      <!-- Einsparpotenzial je Fahrer -->
       <div class="card accent">
-        <div class="card-h"><h3>Fahrer-Ranking · nach vermeidbarem Betrag</h3>
-          <span class="h-sub">was die Flotte Geld kostet</span>
-          <span class="h-meta">${A.je_fahrer.length} Fahrer</span></div>
+        <div class="card-h"><h3>Einsparpotenzial je Fahrer</h3>
+          <span class="h-sub">überwiegend Kartenwahl, nicht Fahrverhalten</span>
+          <span class="h-meta">${A.je_fahrer.length} Fahrer · sortiert nach Menge</span></div>
         <table class="dt">
           <thead><tr>
             <th class="rank">#</th><th>Fahrer</th><th>Fahrzeug</th><th>Ges.</th>
             <th class="num">kWh</th><th class="num">Ø €/kWh</th><th class="num">Ladekosten</th>
-            <th class="num">vermeidbar</th><th class="num">Anteil</th>
+            <th class="num">Potenzial</th><th class="num">Anteil</th>
             <th class="num">DKV-Anteil</th><th>Verlauf</th>
           </tr></thead>
           <tbody>
@@ -299,41 +328,42 @@
               const dq = tot ? f.dkv_kwh/tot : 0;
               return `
               <tr>
-                <td class="rank ${i<3?'rank-'+(i+1):''}">${i+1}</td>
+                <td class="rank">${i+1}</td>
                 <td><b>${esc(f.name)}</b>${f.ist_tesla ? '' : ` <span class="badge" title="Fremdmarke – am Supercharger nur mit eigener Mitgliedschaft zum Vorzugspreis">${esc(f.marke)}</span>`}</td>
                 <td class="mono small">${f.kfz.map(esc).join(' · ')}</td>
                 <td>${f.ges.map(x=>`<span class="badge ges-${x.toLowerCase()}">${esc(x)}</span>`).join(' ')}</td>
                 <td class="num">${num(f.kwh,0)}</td>
                 <td class="num"><b>${ekwh(f.preis)}</b></td>
                 <td class="num">${eu(f.ist_eur)}</td>
-                <td class="num"><b style="color:#ff7a6e;">${eu(f.vermeidbar)}</b></td>
+                <td class="num"><b>${eu(f.vermeidbar)}</b></td>
                 <td class="num">${pct1(f.quote)}</td>
-                <td class="num">${pct(dq)} <span class="bar warn" style="width:52px;"><i style="width:${(dq*100).toFixed(0)}%"></i></span></td>
+                <td class="num">${pct(dq)} <span class="bar yellow" style="width:52px;"><i style="width:${(dq*100).toFixed(0)}%"></i></span></td>
                 <td>${spark(f.reihe)}</td>
               </tr>`;}).join('')}
           </tbody>
         </table>
         <p class="small muted" style="margin:12px 0 0;">
-          Die letzte Spalte zeigt den Verlauf der vermeidbaren Kosten über ${A.monate.length} Monate.
-          Der DKV-Anteil ist der stärkste Einzelfaktor: die vier Fahrer mit 0 % DKV-Anteil sind
-          gleichzeitig die vier mit dem niedrigsten Preis pro kWh.
+          Die Reihenfolge folgt weitgehend der gefahrenen Menge — wer viel unterwegs ist, steht
+          oben. Das ist kein Leistungsurteil. Entscheidend ist die Spalte <b>DKV-Anteil</b>:
+          die vier Fahrer mit 0 % DKV haben auch den niedrigsten Preis je kWh, ohne irgendetwas
+          anders zu machen als mit einer anderen Karte zu laden.
         </p>
       </div>
 
       <!-- Effizienz-Ranking -->
       <div class="grid-12">
         <div class="card">
-          <div class="card-h"><h3>Wer lädt am teuersten?</h3>
-            <span class="h-sub">unabhängig von der Menge · ab 100 kWh</span></div>
+          <div class="card-h"><h3>Preis je kWh im Vergleich</h3>
+            <span class="h-sub">mengenunabhängig · ab 100 kWh</span></div>
           <table class="dt">
             <thead><tr><th class="rank">#</th><th>Fahrer</th><th class="num">Ø €/kWh</th>
               <th class="num">gegen Referenz</th><th class="num">kWh</th></tr></thead>
             <tbody>
               ${A.je_fahrer.filter(f=>f.eff_rang).sort((a,b)=>a.eff_rang-b.eff_rang).map(f => `
                 <tr>
-                  <td class="rank ${f.eff_rang<=3?'rank-'+f.eff_rang:''}">${f.eff_rang}</td>
+                  <td class="rank">${f.eff_rang}</td>
                   <td><b>${esc(f.name)}</b> <span class="muted small">${esc(f.marke)}</span></td>
-                  <td class="num"><b style="color:${f.preis>0.6?'#ff7a6e':f.preis>0.48?'var(--ink)':'var(--good)'};">${ekwh(f.preis)}</b></td>
+                  <td class="num"><b style="color:${f.preis>0.6?'var(--yellow)':f.preis>0.48?'var(--ink)':'var(--good)'};">${ekwh(f.preis)}</b></td>
                   <td class="num">${f.preis>K.referenz ? '+'+ct(f.preis-K.referenz) : '−'+ct(K.referenz-f.preis)}</td>
                   <td class="num">${num(f.kwh,0)}</td>
                 </tr>`).join('')}
@@ -350,7 +380,7 @@
             <tbody>
               ${A.je_fahrer.filter(f=>f.zeit_eur>0).sort((a,b)=>b.zeit_eur-a.zeit_eur).map(f=>`
                 <tr><td><b>${esc(f.name)}</b></td><td class="num">${num(f.n_stand||0,0)}</td>
-                <td class="num"><b style="color:#ff7a6e;">${eu(f.zeit_eur)}</b></td>
+                <td class="num"><b>${eu(f.zeit_eur)}</b></td>
                 <td class="num">${eu(f.zeit_max)}</td>
                 <td class="num muted">${eu(f.zeit_lade_eur||0)}</td></tr>`).join('')}
             </tbody>
@@ -376,7 +406,7 @@
           <thead><tr><th>Betreiber</th><th>Zugang</th><th class="num">Ladungen</th>
             <th class="num">kWh</th><th class="num">€ Energie</th><th class="num">+ Minuten</th>
             <th class="num">Ø €/kWh effektiv</th>
-            <th class="num">vermeidbar</th><th>gegen Referenz</th></tr></thead>
+            <th class="num">Potenzial</th><th>gegen Referenz</th></tr></thead>
           <tbody>
             ${A.betreiber.map(b => {
               const ueber = Math.max(0, b.preis - K.referenz);
@@ -389,9 +419,9 @@
                 <td class="num">${num(b.kwh,0)}</td>
                 <td class="num">${eu(b.eur)}</td>
                 <td class="num" style="color:var(--ink-3);">${b.zeitanteil>0?eu(b.zeitanteil):'—'}</td>
-                <td class="num"><b style="color:${b.preis>0.7?'#ff7a6e':b.preis>0.5?'var(--ink)':'var(--good)'};">${ekwh(b.preis)}</b></td>
+                <td class="num"><b style="color:${b.preis>0.7?'var(--yellow)':b.preis>0.5?'var(--ink)':'var(--good)'};">${ekwh(b.preis)}</b></td>
                 <td class="num">${b.vermeidbar > 0 ? eu(b.vermeidbar) : '—'}</td>
-                <td><span class="bar warn" style="width:120px;"><i style="width:${w.toFixed(0)}%"></i></span>
+                <td><span class="bar yellow" style="width:120px;"><i style="width:${w.toFixed(0)}%"></i></span>
                     <span class="small mono muted">${ueber > 0 ? '+'+ct(ueber) : '—'}</span></td>
               </tr>`;}).join('')}
           </tbody>
@@ -714,7 +744,7 @@
             <tbody>
               ${A.betreiber.filter(b=>b.via==='DKV' && b.vermeidbar>50).slice(0,9).map(b=>`
                 <tr><td><b>${esc(b.o)}</b></td><td class="num">${ekwh(b.preis)}</td>
-                <td class="num"><b style="color:#ff7a6e;">${eu(b.vermeidbar)}</b></td></tr>`).join('')}
+                <td class="num"><b>${eu(b.vermeidbar)}</b></td></tr>`).join('')}
             </tbody>
           </table>
           <p class="small muted" style="margin:10px 0 0;">
@@ -727,8 +757,10 @@
       <!-- Fahrerblätter -->
       <h2 style="font-weight:900;font-size:24px;margin:26px 0 6px;letter-spacing:-0.3px;">Fahrerblätter</h2>
       <p style="margin:0 0 14px;color:var(--ink-3);font-size:13.5px;">
-        Ein Block je Fahrer, sortiert nach Einsparpotential. Beim Ausdrucken beginnt jeder
-        Fahrer auf einer neuen Seite.
+        Ein Blatt je Fahrer zum Ausdrucken. <b>Das ist keine Bewertung und kein Vorwurf</b> —
+        der weitaus grösste Teil des Potenzials entsteht durch die Karte, die im Fahrzeug liegt,
+        nicht durch das Verhalten am Ladepunkt. Die Blätter sagen jedem, <b>wo und wann</b> er
+        am günstigsten lädt, mehr nicht.
       </p>
       ${A.je_fahrer.filter(f => f.kwh >= 50 || f.zeit_eur > 20).map(fahrerBlatt).join('')}
 
@@ -782,7 +814,7 @@
         · spart ${eu(a.ersparnis_je_ladung)} je Ladung nach Abzug des Umwegs</span>`;
     }
     return `<span class="muted small">nächster eigener Supercharger ist <b>${esc(a.o)}</b> in ${a.km} km —
-      <b style="color:#ff9a4d;">dieser Umweg rechnet sich nicht</b>
+      <b style="color:var(--yellow);">dieser Umweg rechnet sich nicht</b>
       (${eu(a.ersparnis_je_ladung)} Ersparnis gegen ${eu(a.umweg_kosten)} Mehrverbrauch).
       In der Tesla-App prüfen, ob es vor Ort einen gibt.</span>`;
   }
@@ -797,15 +829,15 @@
       <div class="card accent fahrerblatt" style="margin-bottom:14px;">
         <div class="card-h">
           <h3>${esc(f.name)}
-            ${f.ist_tesla ? '' : `<span class="badge ges-fleet" style="margin-left:7px;">${esc(f.marke)} — keine Tesla-Marke</span>`}
+            ${f.ist_tesla ? '' : `<span class="badge" style="margin-left:7px;">${esc(f.marke)}</span>`}
           </h3>
           <span class="h-sub">${f.kfz.map(esc).join(' · ')} · ${f.ges.map(esc).join('/')} ·
             Hauptladeort ${esc(f.haupt_ort)} (${pct(f.haupt_ort_anteil)} der Ladungen)</span>
-          <span class="h-meta">Rang ${A.je_fahrer.indexOf(f)+1} von ${A.je_fahrer.length}${f.eff_rang?` · teuerster Preis Rang ${f.eff_rang}/${f.eff_von}`:''}</span>
+          <span class="h-meta">${num(f.monate_aktiv,0)} Monate · ${num(f.n,0)} Ladungen</span>
         </div>
 
         <div class="kpis" style="grid-template-columns:repeat(6,1fr);margin-bottom:14px;">
-          <div class="kpi warn"><div class="label">vermeidbar</div><div class="val">${eu(f.vermeidbar)}</div>
+          <div class="kpi hi"><div class="label">Einsparpotenzial</div><div class="val">${eu(f.vermeidbar)}</div>
             <div class="extra">${eu(proMonat)} / Monat</div></div>
           <div class="kpi"><div class="label">Ladekosten</div><div class="val">${eu(f.ist_eur)}</div>
             <div class="extra">${pct1(f.quote)} davon vermeidbar</div></div>
@@ -813,17 +845,17 @@
             <div class="extra">Referenz ${(K.referenz*100).toFixed(0)} ct</div></div>
           <div class="kpi"><div class="label">Energie</div><div class="val">${num(f.kwh,0)}<span class="u">kWh</span></div>
             <div class="extra">${num(f.monate_aktiv,0)} Monate aktiv</div></div>
-          <div class="kpi ${dq>0.5?'warn':''}"><div class="label">DKV-Anteil</div><div class="val">${pct(dq)}</div>
+          <div class="kpi"><div class="label">DKV-Anteil</div><div class="val">${pct(dq)}</div>
             <div class="extra">${num(f.dkv_kwh,0)} kWh DKV · ${num(f.tesla_kwh,0)} Tesla</div></div>
-          <div class="kpi ${f.peak_quote!==null&&f.peak_quote>0.8?'warn':''}"><div class="label">im Peak geladen</div>
+          <div class="kpi"><div class="label">im Peak geladen</div>
             <div class="val">${f.peak_quote===null?'—':pct(f.peak_quote)}</div>
             <div class="extra">${f.peak_quote===null?'keine Uhrzeit im Beleg':'08–22 Uhr'}</div></div>
         </div>
 
         ${(f.teure_orte && f.teure_orte.length) ? `
         <table class="dt" style="margin-bottom:12px;">
-          <thead><tr><th>Hier zahlst du zu viel</th><th class="num">Ladungen</th><th class="num">kWh</th>
-            <th class="num">bezahlt</th><th class="num">zu viel</th><th>Stattdessen: Supercharger, den wir selbst nutzen</th></tr></thead>
+          <thead><tr><th>Ladeorte mit Potenzial</th><th class="num">Ladungen</th><th class="num">kWh</th>
+            <th class="num">bezahlt</th><th class="num">Potenzial</th><th>Supercharger, den wir selbst nutzen</th></tr></thead>
           <tbody>
             ${f.teure_orte.map(o => `
               <tr>
@@ -831,17 +863,17 @@
                 <td class="num">${num(o.n,0)}</td>
                 <td class="num">${num(o.kwh,0)}</td>
                 <td class="num">${ekwh(o.preis)}</td>
-                <td class="num"><b style="color:#ff7a6e;">${eu(o.verm)}</b></td>
+                <td class="num"><b>${eu(o.verm)}</b></td>
                 <td>${altZelle(o)}</td>
               </tr>`).join('')}
           </tbody>
         </table>` : ''}
 
         ${tipps.map(t => `
-          <div style="border-left:3px solid ${t.p===1?'var(--warn)':t.p===2?'var(--info)':'var(--rule)'};padding:9px 0 9px 13px;margin-bottom:10px;">
+          <div style="border-left:3px solid ${t.p===1?'var(--yellow)':t.p===2?'var(--info)':'var(--rule)'};padding:9px 0 9px 13px;margin-bottom:10px;">
             <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:4px;">
               <b style="font-size:15px;color:#fff;">${t.kopf}</b>
-              ${t.spar ? `<span class="pill ${t.p===1?'warn':'yellow'}">${eu(t.spar)} Potential</span>` : ''}
+              ${t.spar ? `<span class="pill yellow">${eu(t.spar)} Potenzial</span>` : ''}
             </div>
             <div style="font-size:13.5px;line-height:1.6;color:var(--ink-2);">${t.body}</div>
           </div>`).join('')}

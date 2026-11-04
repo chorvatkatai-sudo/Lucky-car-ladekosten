@@ -222,10 +222,10 @@
           <div class="val" style="font-size:20px;">${expensive[0].key.split(',')[0]}</div>
           <div class="extra">${kwhp(expensive[0].avg_eur_kwh)} €/kWh</div>
         </div>
-        <div class="kpi warn">
-          <div class="label">Zeit-Tarif-Standorte</div>
+        <div class="kpi">
+          <div class="label">Standorte mit Minutentarif</div>
           <div class="val">${zeitStations.length}</div>
-          <div class="extra">${eu(sumBy(zeitStations, s=>s.zeit_eur))} an vermeidbaren Kosten</div>
+          <div class="extra">${eu(sumBy(zeitStations, s=>s.zeit_eur))} Minutenkosten</div>
         </div>
         <div class="kpi">
           <div class="label">Top-3 Anteil</div>
@@ -374,7 +374,7 @@
       <p style="margin:0 0 18px;color:var(--ink-3);font-size:14px;">nach Minuten abgerechnete Positionen · davon ${eu(totalStand + totalIdle)} vermeidbar, ${eu(totalLade)} echte Ladezeit</p>
 
       <div class="kpis">
-        <div class="kpi warn">
+        <div class="kpi hi">
           <div class="label">Standzeit (vermeidbar)</div>
           <div class="val">${eu(totalStand)}</div>
           <div class="extra">${pct(totalStand/STATS.eur)} der Ladekosten</div>
@@ -384,8 +384,8 @@
           <div class="val">${eu(totalLade)}</div>
           <div class="extra">nicht vermeidbar · ${zeitSess.length} Positionen</div>
         </div>
-        <div class="kpi warn">
-          <div class="label">Blockier-Gebühren</div>
+        <div class="kpi">
+          <div class="label">Überlastungsgebühren</div>
           <div class="val">${eu(totalIdle)}</div>
           <div class="extra">${idleRows.length} Vorfälle · Idle &gt; 5 min</div>
         </div>

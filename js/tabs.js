@@ -94,10 +94,10 @@
           <div class="val">${kwhp(STATS.avg_eur_kwh)}<span class="u">€/kWh</span></div>
           <div class="extra">SC-Tarif inkl. Zeit</div>
         </div>
-        <div class="kpi warn">
-          <div class="label">Vermeidbare Kosten</div>
+        <div class="kpi hi">
+          <div class="label">Einsparpotenzial</div>
           <div class="val">${eu(totalVermeidbar)}</div>
-          <div class="extra">${pct(vermeidbarPct)} vom Total · Details im Reiter Effizienz</div>
+          <div class="extra">${pct(vermeidbarPct)} · überwiegend Tarifwahl · Reiter Effizienz</div>
         </div>
       </div>
 
@@ -150,7 +150,7 @@
           ${driverAggs.slice(0,5).map((d,i) => `
             <div class="leader ${i===0?'top':''}">
               <div class="rk">${i+1}</div>
-              <div class="nm"><b>${d.key}</b><small>${d.n} Sess · ${num(d.kwh,0)} kWh · ${d.vermeidbar>0 ? eu(d.vermeidbar)+' vermeidbar' : 'effizient'}</small></div>
+              <div class="nm"><b>${d.key}</b><small>${d.n} Sess · ${num(d.kwh,0)} kWh · ${d.vermeidbar>0 ? eu(d.vermeidbar)+' Standzeit' : 'keine Standzeit'}</small></div>
               <div class="vl">${eu(d.eur)}<small>${kwhp(d.avg_eur_kwh)} €/kWh</small></div>
             </div>
           `).join('')}
@@ -177,12 +177,13 @@
           </div>
         </div>
 
-        <div class="card ${vermeidbarPct > 0.15 ? 'alert' : 'success'}">
-          <div class="card-h"><h3>Effizienz-Status</h3><span class="h-sub">Vermeidbare Kosten</span></div>
-          <div style="font-size:36px;font-weight:900;color:${vermeidbarPct > 0.15 ? 'var(--warn)' : 'var(--good)'};">${pct(vermeidbarPct)}</div>
+        <div class="card accent">
+          <div class="card-h"><h3>Einsparpotenzial</h3><span class="h-sub">Anteil an den Ladekosten</span></div>
+          <div style="font-size:36px;font-weight:900;color:var(--yellow);">${pct(vermeidbarPct)}</div>
           <div style="font-size:13px;color:var(--ink-2);margin-bottom:10px;">
-            ${eu(totalVermeidbar)} — überwiegend durch die <b>Wahl des Ladenetzes</b>, nicht durch
-            das Verhalten der Fahrer. Aufschlüsselung im Reiter Effizienz.
+            ${eu(totalVermeidbar)} — das meiste davon hängt an der <b>Wahl des Ladenetzes</b>,
+            also an der Karte im Fahrzeug, nicht am Verhalten der Fahrer.
+            Aufschlüsselung im Reiter Effizienz.
           </div>
           ${AN ? `<div style="display:flex;gap:14px;font-size:12px;flex-wrap:wrap;">
             <div><b>Netzwahl:</b> ${eu(AN.gesamt.topf.A1 + AN.gesamt.topf.A2)}<br/><span class="muted">teurer als ${AN.konstanten.referenz.toFixed(2).replace('.',',')} €/kWh</span></div>
@@ -192,7 +193,7 @@
           <div style="font-size:11.5px;color:var(--ink-4);margin-top:8px;line-height:1.5;">
             Von ${eu(totalZeit)} nach Minuten abgerechneten Kosten sind ${eu(totalLade)} <b>echte Ladezeit</b>
             und damit unvermeidbarer Tarifbestandteil. Die übrigen ${eu(totalStand)} sind Standzeit nach
-            Ladeende — <b style="color:#ff7a6e;">vermeidbar</b> und oben bereits mitgezählt.
+            Ladeende — <b>vermeidbar</b> und oben bereits mitgezählt.
           </div>` : ''}
           <hr class="divider"/>
           <div style="font-size:12px;color:var(--ink-3);">
@@ -315,7 +316,7 @@
           <div class="val">${kwhp(agg.avg_eur_kwh)}<span class="u">€/kWh</span></div>
           <div class="extra">Vol. kWh-Sessions</div>
         </div>
-        <div class="kpi ${agg.vermeidbar_pct > 0.10 ? 'warn' : 'good'}">
+        <div class="kpi">
           <div class="label">Standzeit</div>
           <div class="val">${eu(agg.vermeidbar + sumBy(idlePens, r=>r.eu))}</div>
           <div class="extra">${pct((agg.vermeidbar + sumBy(idlePens, r=>r.eu))/agg.eur)} vom Total · ohne Ladezeit</div>
