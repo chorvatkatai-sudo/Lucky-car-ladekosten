@@ -2,7 +2,7 @@
 // Ersetzt renderStandorte aus tabs2.js (wird nach tabs2.js geladen).
 (function(){
   const D = window.LCData;
-  const { SESSIONS, eu, num, pct, sumBy, byField } = D;
+  const { SESSIONS, eu, num, pct, kwhp, sumBy, byField } = D;
   const GEO   = window.GEO_AT || {};
   const UMRISS = window.GEO_AT_UMRISS || [];
   const BL_NAME = window.GEO_AT_BL || {};
@@ -124,7 +124,7 @@
         </div>
         <div class="kpi">
           <div class="label">Ø Preis Österreich</div>
-          <div class="val">${sumBy(AT,s=>s.kw) > 0 ? (atEur / sumBy(AT,s=>s.kw)).toFixed(2) : '—'}<span class="u">€/kWh</span></div>
+          <div class="val">${sumBy(AT,s=>s.kw) > 0 ? kwhp(atEur / sumBy(AT,s=>s.kw)) : '—'}<span class="u">€/kWh</span></div>
           <div class="extra">inkl. Ladezeit-Tarife</div>
         </div>
       </div>
@@ -203,7 +203,7 @@
             <td class="num">${x.n}</td>
             <td class="num">${num(x.kwh, 0)}</td>
             <td class="num"><b>${eu(x.eur)}</b></td>
-            <td class="num">${x.kwh > 0 ? x.avg_eur_kwh.toFixed(3) : '—'}</td>
+            <td class="num">${x.kwh > 0 ? kwhp(x.avg_eur_kwh, 3) : '—'}</td>
           </tr>`).join('')}
           </tbody>
         </table>

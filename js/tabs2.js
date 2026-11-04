@@ -8,7 +8,7 @@
     SESSIONS, IDLE_PENALTIES, MONTHS, MONTH_LABELS, MONTH_SHORT,
     MONTHS_N, PERIOD_LONG, PERIOD_SHORT, MONATE_TXT, GES_TXT, STAND,
     COUNTRY_NAMES,
-    eu, num, pct, pct1,
+    eu, num, pct, pct1, kwhp,
     sumBy, aggregate, withAvg,
     byMonth, byField,
     getVehicleMeta, byHour, byWeekday, masterStats,
@@ -64,7 +64,7 @@
         <div class="kpi">
           <div class="label">Sparsamster</div>
           <div class="val" style="font-size:24px;">${(()=>{const v=[...vehicles].sort((a,b)=>a.avg_eur_kwh-b.avg_eur_kwh)[0];return v.kfz;})()}</div>
-          <div class="extra">${(()=>{const v=[...vehicles].sort((a,b)=>a.avg_eur_kwh-b.avg_eur_kwh)[0];return v.avg_eur_kwh.toFixed(3)+' €/kWh';})()}</div>
+          <div class="extra">${(()=>{const v=[...vehicles].sort((a,b)=>a.avg_eur_kwh-b.avg_eur_kwh)[0];return kwhp(v.avg_eur_kwh, 3)+' €/kWh';})()}</div>
         </div>
         <div class="kpi">
           <div class="label">Aktiv-Quote</div>
@@ -114,7 +114,7 @@
             <td class="num">${num(v.kwh, 0)}</td>
             <td class="num">${v.n > 0 ? num(v.kwh/v.n, 1) : '—'}</td>
             <td class="num"><b>${eu(v.eur)}</b></td>
-            <td class="num">${v.kwh > 0 ? v.avg_eur_kwh.toFixed(3) : '—'}</td>
+            <td class="num">${v.kwh > 0 ? kwhp(v.avg_eur_kwh, 3) : '—'}</td>
             <td class="num">${v.zeit_eur > 0 ? `<b style="color:var(--warn);">${pct(v.zeit_eur/v.eur)}</b>` : `<span class="muted">0 %</span>`}</td>
             <td>${vehSpark(v)}</td>
           </tr>`).join('')}
@@ -173,7 +173,7 @@
               <td class="num">${d.n}</td>
               <td class="num">${num(d.kwh, 0)}</td>
               <td class="num"><b>${eu(d.eur)}</b></td>
-              <td class="num">${d.kwh > 0 ? d.avg_eur_kwh.toFixed(3) : '—'}</td>
+              <td class="num">${d.kwh > 0 ? kwhp(d.avg_eur_kwh, 3) : '—'}</td>
               <td class="num">${d.zeit_n || '—'}</td>
               <td class="num">${d.vermeidbar > 0 ? `<b style="color:${isWarn?'var(--warn)':'var(--ink)'};">${eu(d.vermeidbar)}</b><br/><small class="muted">${pct(d.vermeidbar/d.eur)}</small>` : '<span class="muted">0</span>'}</td>
               <td>${driverSpark(d)}</td>
@@ -220,7 +220,7 @@
         <div class="kpi">
           <div class="label">Teuerstes pro kWh</div>
           <div class="val" style="font-size:20px;">${expensive[0].key.split(',')[0]}</div>
-          <div class="extra">${expensive[0].avg_eur_kwh.toFixed(2)} €/kWh</div>
+          <div class="extra">${kwhp(expensive[0].avg_eur_kwh)} €/kWh</div>
         </div>
         <div class="kpi warn">
           <div class="label">Zeit-Tarif-Standorte</div>
@@ -252,7 +252,7 @@
               <td class="num"><b>${s.n}</b></td>
               <td class="num">${num(s.kwh, 0)}</td>
               <td class="num">${eu(s.eur)}</td>
-              <td class="num">${s.avg_eur_kwh > 0 ? s.avg_eur_kwh.toFixed(2) : '—'}</td>
+              <td class="num">${s.avg_eur_kwh > 0 ? kwhp(s.avg_eur_kwh) : '—'}</td>
               <td><div class="bar yellow" style="width:60px;"><i style="width:${(s.n/stations[0].n*100).toFixed(0)}%"></i></div></td>
             </tr>`).join('')}
             </tbody>
@@ -310,7 +310,9 @@
   function renderBlockier(host) {
     const zeitSess = SESSIONS.filter(s => s.kd === 'zeit');
     const idleRows = IDLE_PENALTIES;
-    const totalZeit = sumBy(zeitSess, s=>s.eu);
+    const totalZeit = sumBy(zeitSess, s=>s.eu);            // brutto
+    const totalLade = sumBy(zeitSess, s=>s.lv||0);         // echte Ladezeit, Tarif
+    const totalStand = sumBy(zeitSess, s=>s.sv||0);        // Standzeit, vermeidbar
     const totalIdle = sumBy(idleRows, r=>r.eu);
     const totalVermeidbar = totalZeit + totalIdle;
 
@@ -368,26 +370,38 @@
     }
 
     let html = `
-      <h1 style="font-weight:900;font-size:32px;letter-spacing:-0.5px;margin:0 0 4px;">Blockier-Kosten Analyse</h1>
-      <p style="margin:0 0 18px;color:var(--ink-3);font-size:14px;">Zeit-Tarif &amp; Idle-Gebühren · was wir vermeiden können</p>
+      <h1 style="font-weight:900;font-size:32px;letter-spacing:-0.5px;margin:0 0 4px;">Standzeiten &amp; Minutenpositionen</h1>
+      <p style="margin:0 0 18px;color:var(--ink-3);font-size:14px;">nach Ladezeit abgerechnete Positionen · wie viel davon wirklich vermeidbar ist</p>
 
-      <div class="alert-box">
-        <div class="icon">€</div>
+      <div class="alert-box info">
+        <div class="icon">i</div>
         <div class="body">
-          <h4 style="font-size:20px;">Vermeidbare Kosten: <b>${eu(totalVermeidbar)}</b> in ${MONATE_TXT}n</h4>
+          <h4 style="font-size:19px;">Von ${eu(totalZeit + totalIdle)} Minutenkosten sind <b>${eu(totalStand + totalIdle)}</b> vermeidbar</h4>
           <p>
-            Davon <b>${eu(totalZeit)}</b> durch <b>${zeitSess.length} Zeit-Tarif-Sessions</b> (langsame Ladesäulen, ø ${(totalZeit/zeitSess.length).toFixed(2)} €/Sess) ·
-            <b>${eu(totalIdle)}</b> durch <b>${idleRows.length} Idle-Penaltys</b> (Auto stand am Stecker nach voller Ladung).
-            Diese Kosten entstehen <b>zusätzlich</b> zur Stromrechnung — sie sind reine Verluste.
+            Die ${zeitSess.length} Minutenpositionen (DKV-Codes 0965/0966, 0 kWh) sahen zunächst nach
+            Blockiergebühren aus. Geprüft an den Rechnungen am 04.11.2026 sind sie es überwiegend nicht:
+            sie kosten durchgehend rund <b>0,09 €/Minute</b> und liegen bei 475 von 486 Positionen neben
+            einer Energiezeile derselben Ladung. Rechnet man die geladene Energie auf die Minuten um,
+            ergibt sich eine Ladeleistung mit dem <b>Median von 58 kW</b> — die Minuten sind also
+            überwiegend die <b>echte Ladedauer</b> und Bestandteil des DKV-Tarifs.<br>
+            Aufgeteilt: <b>${eu(totalLade)}</b> Ladezeit (nicht vermeidbar, zählt im Reiter Effizienz
+            beim effektiven Preis je kWh mit) und <b>${eu(totalStand)}</b> Standzeit über der benötigten
+            Ladedauer. Dazu ${idleRows.length} Tesla-Überlastungsgebühren à ${eu(totalIdle)} — die sind
+            echte Strafen und voll vermeidbar.
           </p>
         </div>
       </div>
 
       <div class="kpis">
         <div class="kpi warn">
-          <div class="label">Zeit-Tarif Total</div>
-          <div class="val">${eu(totalZeit)}</div>
-          <div class="extra">${zeitSess.length} Sessions · ${pct(totalZeit/STATS.eur)} Anteil</div>
+          <div class="label">Standzeit (vermeidbar)</div>
+          <div class="val">${eu(totalStand)}</div>
+          <div class="extra">${pct(totalStand/STATS.eur)} der Ladekosten</div>
+        </div>
+        <div class="kpi">
+          <div class="label">Ladezeit (Tarif)</div>
+          <div class="val">${eu(totalLade)}</div>
+          <div class="extra">nicht vermeidbar · ${zeitSess.length} Positionen</div>
         </div>
         <div class="kpi warn">
           <div class="label">Blockier-Gebühren</div>
@@ -510,10 +524,12 @@
     document.getElementById('ms-kwh').textContent = num(STATS.kwh, 0);
     document.getElementById('ms-period').textContent = PERIOD_SHORT;
 
-    // Badge for blockier — show percentage (compact, won't wrap)
-    const blockierEur = sumBy(SESSIONS.filter(s=>s.kd==='zeit'), s=>s.eu) + sumBy(IDLE_PENALTIES, r=>r.eu);
-    const blockierPct = (blockierEur / STATS.eur * 100).toFixed(0);
-    document.getElementById('badge-blockier').textContent = blockierPct + ' %';
+    // Badge fuer Standzeiten. Zeigt NUR die Standzeit (Feld sv), nicht die
+    // Bruttosumme der Minutenpositionen - der groessere Teil davon ist echte
+    // Ladezeit und damit Tarifbestandteil (Korrektur 04.11.2026).
+    const standEur = sumBy(SESSIONS, s=>s.sv||0) + sumBy(IDLE_PENALTIES, r=>r.eu);
+    document.getElementById('badge-blockier').textContent =
+      (standEur / STATS.eur * 100).toFixed(0) + ' %';
 
     // Badge fuer Effizienz - Anteil der vermeidbaren Kosten
     const eBadge = document.getElementById('badge-effizienz');

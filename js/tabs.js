@@ -5,7 +5,7 @@
     SESSIONS, IDLE_PENALTIES, MONTHS, MONTH_LABELS, MONTH_SHORT,
     MONTHS_N, PERIOD_LONG, PERIOD_SHORT, MONATE_TXT, GES_TXT, STAND,
     COUNTRY_NAMES, QUARTERS,
-    eu, num, pct, pct1,
+    eu, num, pct, pct1, kwhp,
     sumBy, aggregate, withAvg,
     byMonth, byMonths, byField,
     getVehicleMeta, byHour, byWeekday, masterStats,
@@ -36,10 +36,18 @@
     const vehAggs = getVehicleMeta();
     const driverAggs = byField('f').filter(d => d.key && d.key !== '(?)');
 
-    const totalZeit = sumBy(SESSIONS.filter(s=>s.kd==='zeit'), s=>s.eu);
+    const totalZeit = sumBy(SESSIONS.filter(s=>s.kd==='zeit'), s=>s.eu);   // brutto
+    const totalLade = sumBy(SESSIONS, s=>s.lv||0);                          // Tarifanteil
+    const totalStand = sumBy(SESSIONS, s=>s.sv||0);                         // Standzeit
     const totalIdle = sumBy(IDLE_PENALTIES, r=>r.eu);
-    const totalVermeidbar = totalZeit + totalIdle;
-    const vermeidbarPct = totalVermeidbar / STATS.eur;
+
+    // Die vermeidbaren Kosten kommen aus der geprueften Auswertung (analyse.js),
+    // damit auf der Seite nur EINE Zahl dafuer steht. Bis 04.11.2026 rechnete
+    // dieser Reiter "alle Minutenpositionen" und zeigte dadurch 5.122 EUR statt
+    // der belegten 15.524 EUR - zwei widersprechende Zahlen auf einer Seite.
+    const AN = window.LC_ANALYSE;
+    const totalVermeidbar = AN ? AN.gesamt.vermeidbar : (totalStand + totalIdle);
+    const vermeidbarPct   = AN ? AN.gesamt.vermeidbar_quote : (totalVermeidbar / STATS.eur);
 
     // Monthly trend chart data
     const trendData = monthAggs.map(m => ({
@@ -83,13 +91,13 @@
         </div>
         <div class="kpi">
           <div class="label">Ø Preis</div>
-          <div class="val">${STATS.avg_eur_kwh.toFixed(2)}<span class="u">€/kWh</span></div>
+          <div class="val">${kwhp(STATS.avg_eur_kwh)}<span class="u">€/kWh</span></div>
           <div class="extra">SC-Tarif inkl. Zeit</div>
         </div>
         <div class="kpi warn">
           <div class="label">Vermeidbare Kosten</div>
           <div class="val">${eu(totalVermeidbar)}</div>
-          <div class="extra">${pct(vermeidbarPct)} vom Total · Zeit-Tarif &amp; Blockier</div>
+          <div class="extra">${pct(vermeidbarPct)} vom Total · Details im Reiter Effizienz</div>
         </div>
       </div>
 
@@ -132,7 +140,7 @@
             <div class="leader ${i===0?'top':''}">
               <div class="rk">${i+1}</div>
               <div class="nm"><b>${v.kfz}</b> <span class="badge ges-${v.ges.toLowerCase()}">${v.ges}</span><small>${v.fahrer} · ${v.n} Sess · ${num(v.kwh,0)} kWh</small></div>
-              <div class="vl">${eu(v.eur)}<small>${v.avg_eur_kwh.toFixed(2)} €/kWh</small></div>
+              <div class="vl">${eu(v.eur)}<small>${kwhp(v.avg_eur_kwh)} €/kWh</small></div>
             </div>
           `).join('')}
         </div>
@@ -143,7 +151,7 @@
             <div class="leader ${i===0?'top':''}">
               <div class="rk">${i+1}</div>
               <div class="nm"><b>${d.key}</b><small>${d.n} Sess · ${num(d.kwh,0)} kWh · ${d.vermeidbar>0 ? eu(d.vermeidbar)+' vermeidbar' : 'effizient'}</small></div>
-              <div class="vl">${eu(d.eur)}<small>${d.avg_eur_kwh.toFixed(2)} €/kWh</small></div>
+              <div class="vl">${eu(d.eur)}<small>${kwhp(d.avg_eur_kwh)} €/kWh</small></div>
             </div>
           `).join('')}
         </div>
@@ -173,12 +181,18 @@
           <div class="card-h"><h3>Effizienz-Status</h3><span class="h-sub">Vermeidbare Kosten</span></div>
           <div style="font-size:36px;font-weight:900;color:${vermeidbarPct > 0.15 ? 'var(--warn)' : 'var(--good)'};">${pct(vermeidbarPct)}</div>
           <div style="font-size:13px;color:var(--ink-2);margin-bottom:10px;">
-            ${eu(totalVermeidbar)} entstanden durch Zeit-Tarif (langsame Ladestationen) und Blockier-Gebühren.
+            ${eu(totalVermeidbar)} — überwiegend durch die <b>Wahl des Ladenetzes</b>, nicht durch
+            das Verhalten der Fahrer. Aufschlüsselung im Reiter Effizienz.
           </div>
-          <div style="display:flex;gap:14px;font-size:12px;">
-            <div><b>Zeit-Tarif:</b> ${eu(totalZeit)}<br/><span class="muted">${SESSIONS.filter(s=>s.kd==='zeit').length} Sessions</span></div>
-            <div><b>Blockier:</b> ${eu(totalIdle)}<br/><span class="muted">${IDLE_PENALTIES.length} Vorfälle</span></div>
+          ${AN ? `<div style="display:flex;gap:14px;font-size:12px;flex-wrap:wrap;">
+            <div><b>Netzwahl:</b> ${eu(AN.gesamt.topf.A1 + AN.gesamt.topf.A2)}<br/><span class="muted">teurer als ${AN.konstanten.referenz.toFixed(2).replace('.',',')} €/kWh</span></div>
+            <div><b>Zeitfenster:</b> ${eu(AN.gesamt.topf.B)}<br/><span class="muted">tags statt nachts geladen</span></div>
+            <div><b>Stehenbleiben:</b> ${eu(AN.gesamt.topf.C)}<br/><span class="muted">Standzeit nach Ladeende</span></div>
           </div>
+          <div style="font-size:11.5px;color:var(--ink-4);margin-top:8px;line-height:1.5;">
+            Die Minutenpositionen von ${eu(totalZeit)} sind aufgeteilt: ${eu(totalLade)} davon sind
+            <b>echte Ladezeit</b> und damit Tarifbestandteil, nur ${eu(totalStand)} sind Standzeit.
+          </div>` : ''}
           <hr class="divider"/>
           <div style="font-size:12px;color:var(--ink-3);">
             <b style="color:var(--good);">↘ Trend:</b> Zeit-Tarif-Anteil ${(() => {const f = m => { const a = byMonth(m); const z = sumBy(a.filter(r=>r.kd==='zeit'), r=>r.eu); const g = sumBy(a, r=>r.eu); return g ? z/g : 0; }; const a = f(MONTHS[0]), b = f(MONTHS[MONTHS.length-1]); return (b < a ? 'sinkt' : 'steigt') + ' von ' + pct(a) + ' (' + MONTH_SHORT[MONTHS[0]] + ') auf ' + pct(b) + ' (' + MONTH_SHORT[MONTHS[MONTHS.length-1]] + ')';})()} — gerechnet über den gesamten Zeitraum.
@@ -297,13 +311,13 @@
         </div>
         <div class="kpi">
           <div class="label">Ø Preis</div>
-          <div class="val">${agg.avg_eur_kwh.toFixed(2)}<span class="u">€/kWh</span></div>
+          <div class="val">${kwhp(agg.avg_eur_kwh)}<span class="u">€/kWh</span></div>
           <div class="extra">Vol. kWh-Sessions</div>
         </div>
         <div class="kpi ${agg.vermeidbar_pct > 0.10 ? 'warn' : 'good'}">
-          <div class="label">Vermeidbar</div>
+          <div class="label">Standzeit</div>
           <div class="val">${eu(agg.vermeidbar + sumBy(idlePens, r=>r.eu))}</div>
-          <div class="extra">${pct((agg.vermeidbar + sumBy(idlePens, r=>r.eu))/agg.eur)} vom Total</div>
+          <div class="extra">${pct((agg.vermeidbar + sumBy(idlePens, r=>r.eu))/agg.eur)} vom Total · ohne Ladezeit</div>
         </div>
       </div>
 
@@ -337,7 +351,7 @@
                 <td class="num">${v.n}</td>
                 <td class="num">${v.kwh.toFixed(0)}</td>
                 <td class="num"><b>${eu(v.eur)}</b></td>
-                <td class="num">${v.avg_eur_kwh.toFixed(2)}</td>
+                <td class="num">${kwhp(v.avg_eur_kwh)}</td>
                 <td><div class="bar yellow" style="width:80px;"><i style="width:${w.toFixed(0)}%"></i></div></td>
               </tr>`;
             }).join('')}
@@ -366,18 +380,19 @@
       <div class="alert-box">
         <div class="icon">!</div>
         <div class="body">
-          <h4>Vermeidbare Kosten in diesem Monat</h4>
+          <h4>Minutenpositionen in diesem Monat</h4>
           <p>
-            <b>${zeitSess.length}</b> Zeit-Tarif-Sessions à ${eu(sumBy(zeitSess, s=>s.eu))} ·
-            <b>${idlePens.length}</b> Blockier-Gebühren à ${eu(sumBy(idlePens, r=>r.eu))} ·
-            Gesamt-Verlust: <b>${eu(sumBy(zeitSess, s=>s.eu) + sumBy(idlePens, r=>r.eu))}</b>
+            <b>${zeitSess.length}</b> Positionen à ${eu(sumBy(zeitSess, s=>s.eu))} brutto. Davon sind
+            <b>${eu(sumBy(zeitSess, s=>s.lv||0))}</b> echte Ladezeit (Tarifbestandteil, nicht vermeidbar)
+            und <b>${eu(sumBy(zeitSess, s=>s.sv||0))}</b> Standzeit nach Ladeende.
+            Dazu <b>${idlePens.length}</b> Tesla-Überlastungsgebühren à ${eu(sumBy(idlePens, r=>r.eu))}.
           </p>
         </div>
       </div>` : ''}
 
       ${zeitSess.length ? `
       <div class="card">
-        <div class="card-h"><h3>Zeit-Tarif-Sessions</h3><span class="h-sub">langsame SCs · min-basiert · vermeidbar</span></div>
+        <div class="card-h"><h3>Minutenpositionen</h3><span class="h-sub">nach Ladezeit abgerechnet · Ladezeit + Standzeit</span></div>
         <table class="dt">
           <thead><tr><th>Datum</th><th>Standort</th><th>L</th><th>Fzg</th><th>Fahrer</th><th class="num">Dauer</th><th class="num">€</th></tr></thead>
           <tbody>
@@ -408,7 +423,7 @@
               <td class="num">${s.n}</td>
               <td class="num">${s.kwh.toFixed(0)}</td>
               <td class="num"><b>${eu(s.eur)}</b></td>
-              <td class="num">${s.avg_eur_kwh.toFixed(2)}</td>
+              <td class="num">${kwhp(s.avg_eur_kwh)}</td>
             </tr>`;
           }).join('')}
           </tbody>
@@ -471,9 +486,9 @@
           </div>` : '<div style="margin-top:6px;font-size:13px;color:var(--ink-3);">Baseline</div>'}
           <hr class="divider"/>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:13px;">
-            <div><b>${num(q.kwh,0)}</b> kWh<br/><span class="muted">${q.avg_eur_kwh.toFixed(2)} €/kWh</span></div>
+            <div><b>${num(q.kwh,0)}</b> kWh<br/><span class="muted">${kwhp(q.avg_eur_kwh)} €/kWh</span></div>
             <div><b>${eu(avgMonth)}</b><br/><span class="muted">Ø pro Monat</span></div>
-            <div><b>${q.zeit_n}</b> Zeit-Sess<br/><span class="muted">${eu(q.zeit_eur)} vermeidbar</span></div>
+            <div><b>${q.zeit_n}</b> Min-Pos<br/><span class="muted">${eu(q.stand_eur)} Standzeit</span></div>
             <div><b>${(q.vermeidbar_pct*100).toFixed(0)} %</b><br/><span class="muted">Effizienz-Index</span></div>
           </div>
           <hr class="divider"/>
@@ -501,9 +516,9 @@
             <tr><td><b>Ø pro Monat</b></td>${quartalMonthly.map(q=>`<td class="num">${eu(q.eur/q.months.length)}</td>`).join('')}<td class="num">${svgSpark(quartalMonthly.map(q=>q.eur/q.months.length), { color:'var(--chart-ink,#0d0d0d)' })}</td></tr>
             <tr><td>Energie (kWh)</td>${quartalMonthly.map(q=>`<td class="num">${num(q.kwh,0)}</td>`).join('')}<td class="num">${svgSpark(quartalMonthly.map(q=>q.kwh), { color:'var(--chart-ink,#0d0d0d)' })}</td></tr>
             <tr><td>Sessions</td>${quartalMonthly.map(q=>`<td class="num">${q.n}</td>`).join('')}<td class="num">${svgSpark(quartalMonthly.map(q=>q.n), { color:'var(--chart-ink,#0d0d0d)' })}</td></tr>
-            <tr><td>Ø €/kWh</td>${quartalMonthly.map(q=>`<td class="num">${q.avg_eur_kwh.toFixed(3)}</td>`).join('')}<td class="num">${svgSpark(quartalMonthly.map(q=>q.avg_eur_kwh), { color:'var(--chart-ink,#0d0d0d)' })}</td></tr>
-            <tr><td>Zeit-Tarif Sessions</td>${quartalMonthly.map(q=>`<td class="num">${q.zeit_n}</td>`).join('')}<td class="num">${svgSpark(quartalMonthly.map(q=>q.zeit_n), { color:'#c0392b' })}</td></tr>
-            <tr><td>Zeit-Tarif Kosten</td>${quartalMonthly.map(q=>`<td class="num">${eu(q.zeit_eur)}</td>`).join('')}<td class="num">${svgSpark(quartalMonthly.map(q=>q.zeit_eur), { color:'#c0392b' })}</td></tr>
+            <tr><td>Ø €/kWh</td>${quartalMonthly.map(q=>`<td class="num">${kwhp(q.avg_eur_kwh, 3)}</td>`).join('')}<td class="num">${svgSpark(quartalMonthly.map(q=>q.avg_eur_kwh), { color:'var(--chart-ink,#0d0d0d)' })}</td></tr>
+            <tr><td>Minutenpositionen</td>${quartalMonthly.map(q=>`<td class="num">${q.zeit_n}</td>`).join('')}<td class="num">${svgSpark(quartalMonthly.map(q=>q.zeit_n), { color:'#c0392b' })}</td></tr>
+            <tr><td>Minutenpositionen brutto</td>${quartalMonthly.map(q=>`<td class="num">${eu(q.zeit_eur)}</td>`).join('')}<td class="num">${svgSpark(quartalMonthly.map(q=>q.zeit_eur), { color:'#c0392b' })}</td></tr>
             <tr style="background:var(--good-bg);"><td><b>Effizienz</b> (kWh-Anteil)</td>${quartalMonthly.map(q=>`<td class="num"><b>${pct(1-q.vermeidbar_pct)}</b></td>`).join('')}<td class="num">${svgSpark(quartalMonthly.map(q=>1-q.vermeidbar_pct), { color:'#1f7a3c' })}</td></tr>
           </tbody>
         </table>

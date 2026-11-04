@@ -10,6 +10,10 @@
   const num = (v, dec=0) => v.toLocaleString('de-AT', {minimumFractionDigits:dec, maximumFractionDigits:dec});
   const pct = v => (v*100).toFixed(0) + ' %';
   const pct1 = v => (v*100).toFixed(1).replace('.', ',') + ' %';   // de-AT: Komma
+  // Preis je kWh immer mit Komma ausgeben - de-AT. toFixed() liefert sonst
+  // einen Punkt, was auf einer deutschsprachigen Seite als Tausendertrenner
+  // missverstanden werden kann.
+  const kwhp = (v, dec=2) => (v||0).toFixed(dec).replace('.', ',');
 
   const MONTHS = [...new Set(SESSIONS.map(s=>s.m))].sort();
   const MONTH_LABELS = {
@@ -44,8 +48,52 @@
   })();
 
   const COUNTRY_NAMES = {AT:'Österreich',DE:'Deutschland',CZ:'Tschechien',SI:'Slowenien',IT:'Italien',HU:'Ungarn',HR:'Kroatien',SK:'Slowakei'};
-  const COUNTRY_FLAGS = {AT:'🇦🇹',DE:'🇩🇪',CZ:'🇨🇿',SI:'🇸🇮',IT:'🇮🇹',HU:'🇭🇺',HR:'🇭🇷'};
-  // Use country code badges (no emoji to stay neutral)
+
+  // — Länderflaggen als Inline-SVG
+  // Emoji-Flaggen (🇩🇪 …) sind hier KEINE Option: Windows hat keine
+  // Flaggen-Glyphen, Chrome zeigt dann die zwei Buchstaben "DE" statt der
+  // Flagge. Am 04.11.2026 am Zielrechner geprüft — es erschien "DECZAT".
+  // Deshalb gezeichnet: funktioniert überall, braucht keine externe Datei
+  // und übersteht die Offline-Nutzung.
+  // Grundfläche 18 × 12 (3:2). SI und SK sind beide weiß-blau-rot und werden
+  // über ihr Wappen unterscheidbar gehalten.
+  const _FLAG = {
+    AT: '<rect width="18" height="12" fill="#ED2939"/><rect y="4" width="18" height="4" fill="#fff"/>',
+    DE: '<rect width="18" height="12" fill="#000"/><rect y="4" width="18" height="4" fill="#D00"/><rect y="8" width="18" height="4" fill="#FFCE00"/>',
+    IT: '<rect width="18" height="12" fill="#009246"/><rect x="6" width="12" height="12" fill="#fff"/><rect x="12" width="6" height="12" fill="#CE2B37"/>',
+    CZ: '<rect width="18" height="12" fill="#fff"/><rect y="6" width="18" height="6" fill="#D7141A"/><path d="M0 0 L9 6 L0 12 Z" fill="#11457E"/>',
+    HU: '<rect width="18" height="12" fill="#CE2939"/><rect y="4" width="18" height="4" fill="#fff"/><rect y="8" width="18" height="4" fill="#477050"/>',
+    HR: '<rect width="18" height="12" fill="#FF0000"/><rect y="4" width="18" height="4" fill="#fff"/><rect y="8" width="18" height="4" fill="#171796"/>'
+      + '<rect x="7" y="3.4" width="4" height="4" fill="#fff" stroke="#171796" stroke-width="0.4"/>'
+      + '<rect x="7" y="3.4" width="2" height="2" fill="#FF0000"/><rect x="9" y="5.4" width="2" height="2" fill="#FF0000"/>',
+    SI: '<rect width="18" height="12" fill="#fff"/><rect y="4" width="18" height="4" fill="#0000C6"/><rect y="8" width="18" height="4" fill="#D50000"/>'
+      + '<path d="M3 2.6 L5.6 7 L0.4 7 Z" fill="#fff" stroke="#0000C6" stroke-width="0.5"/>'
+      + '<circle cx="2" cy="1.9" r="0.42" fill="#FFDF00"/><circle cx="4" cy="1.9" r="0.42" fill="#FFDF00"/><circle cx="3" cy="3" r="0.42" fill="#FFDF00"/>',
+    SK: '<rect width="18" height="12" fill="#fff"/><rect y="4" width="18" height="4" fill="#0B4EA2"/><rect y="8" width="18" height="4" fill="#EE1C25"/>'
+      + '<path d="M3.2 2.4 h4.2 v4.1 q0 2.1 -2.1 3.1 q-2.1 -1 -2.1 -3.1 Z" fill="#EE1C25" stroke="#fff" stroke-width="0.55"/>'
+      + '<rect x="5" y="3.4" width="0.7" height="4.6" fill="#fff"/>'
+      + '<rect x="3.9" y="4.5" width="2.9" height="0.6" fill="#fff"/><rect x="3.6" y="6" width="3.5" height="0.6" fill="#fff"/>',
+  };
+  // Flagge als eigenstaendiges SVG fuer HTML-Kontexte (Legende, Tabellen).
+  function flagge(code, h = 11) {
+    const inner = _FLAG[code];
+    if (!inner) {   // unbekanntes Land -> neutrales Kuerzel statt falscher Flagge
+      return `<span class="badge country" style="font-size:9px;padding:0 3px;">${code || '?'}</span>`;
+    }
+    return `<svg viewBox="0 0 18 12" width="${(h*1.5).toFixed(1)}" height="${h}" `
+      + `role="img" aria-label="${COUNTRY_NAMES[code] || code}" `
+      + `style="display:inline-block;vertical-align:-1px;flex-shrink:0;">${inner}`
+      + `<rect width="18" height="12" fill="none" stroke="rgba(0,0,0,.55)" stroke-width="1"/></svg>`;
+  }
+  // Flagge als Gruppe INNERHALB eines bestehenden SVG (Diagramm-Segmente).
+  function flaggeSvg(code, x, y, h = 9) {
+    const inner = _FLAG[code];
+    if (!inner) return '';
+    const sk = h / 12;
+    return `<g transform="translate(${x.toFixed(1)},${y.toFixed(1)}) scale(${sk.toFixed(3)})">${inner}`
+      + `<rect width="18" height="12" fill="none" stroke="rgba(0,0,0,.55)" stroke-width="1"/></g>`;
+  }
+  const FLAG_BREITE = h => h * 1.5;   // 3:2-Verhaeltnis, fuer Layoutrechnungen
 
   // — Aggregation utilities
   function sumBy(arr, fn) {
@@ -59,22 +107,39 @@
     }
     return m;
   }
+  // Minutenpositionen sind in data.js aufgeteilt (Felder sv/lv/zz, erzeugt von
+  // pipeline/schreibe_data_js.py):
+  //   sv = Standzeit  -> vermeidbar
+  //   lv = Ladezeit   -> Tarifbestandteil, NICHT vermeidbar
+  //   zz = der auf eine Energiezeile entfallende Ladezeit-Anteil
+  // Bis 04.11.2026 galt hier "vermeidbar = alle Minutenpositionen". Das war
+  // falsch: die DKV-Codes 0965/0966 kosten rund 0,09 EUR/Minute und bilden
+  // ueberwiegend die echte Ladedauer ab (Median der impliziten Ladeleistung
+  // 58 kW), sind also kein Blockieren. Details im Kopf von baue_analyse.py.
   function aggregate(arr) {
+    const zeitRows = arr.filter(r=>r.kd==='zeit');
     return {
       n: arr.length,
       eur: sumBy(arr, r=>r.eu),
       kwh: sumBy(arr, r=>r.kw),
-      zeit_n: arr.filter(r=>r.kd==='zeit').length,
-      zeit_eur: sumBy(arr.filter(r=>r.kd==='zeit'), r=>r.eu),
+      zeit_n: zeitRows.length,
+      zeit_eur: sumBy(zeitRows, r=>r.eu),          // brutto, Ladezeit + Standzeit
+      stand_eur: sumBy(arr, r=>r.sv||0),           // nur Standzeit -> vermeidbar
+      lade_eur: sumBy(arr, r=>r.lv||0),            // Ladezeit, Tarifbestandteil
+      zuschlag_eur: sumBy(arr, r=>r.zz||0),        // Ladezeit auf Energiezeilen
+      stand_n: arr.filter(r=>(r.sv||0) > 0.005).length,
       kwh_n: arr.filter(r=>r.kd==='kwh').length,
       kwh_eur: sumBy(arr.filter(r=>r.kd==='kwh'), r=>r.eu),
       avg_eur_kwh: 0  // computed below
     };
   }
   function withAvg(agg) {
-    agg.avg_eur_kwh = agg.kwh > 0 ? agg.eur / agg.kwh : 0;
-    agg.vermeidbar = agg.zeit_eur + 0;  // zeit-tariff is the avoidable cost
-    agg.vermeidbar_pct = agg.eur > 0 ? agg.zeit_eur / agg.eur : 0;
+    // Effektiver Preis: Energie plus der Ladezeit-Anteil. Ohne den Zuschlag
+    // saehe DKV guenstiger aus als es ist.
+    agg.avg_eur_kwh = agg.kwh > 0 ? (agg.eur + agg.zuschlag_eur) / agg.kwh : 0;
+    agg.avg_eur_kwh_energie = agg.kwh > 0 ? agg.eur / agg.kwh : 0;
+    agg.vermeidbar = agg.stand_eur;
+    agg.vermeidbar_pct = agg.eur > 0 ? agg.stand_eur / agg.eur : 0;
     return agg;
   }
 
@@ -239,8 +304,21 @@
       r.segments.forEach(seg => {
         const w = (seg.value / max) * innerW;
         svg += `<rect x="${cx.toFixed(1)}" y="${y.toFixed(1)}" width="${w.toFixed(1)}" height="${barH}" fill="${seg.color}" stroke="var(--chart-ink,#0d0d0d)" stroke-width="0.8"/>`;
-        if (w > 30 && seg.label) {
-          svg += `<text x="${(cx+w/2).toFixed(1)}" y="${(y+barH/2+4).toFixed(1)}" text-anchor="middle" font-family="Roboto Condensed" font-size="11" fill="var(--chart-ink,#0d0d0d)" font-weight="700">${seg.label}</text>`;
+        // Flagge im Segment, wenn seg.flag gesetzt ist und das Segment breit
+        // genug. Zu schmale Segmente bleiben leer, statt dass sich Flagge und
+        // Beschriftung ueberlappen.
+        const fh = Math.min(barH - 6, 10);
+        const fw = fh * 1.5;
+        const platzFlagge = seg.flag && w > fw + 8;
+        const platzText = seg.label && w > (platzFlagge ? fw + 30 : 30);
+        let tx = cx + w/2;
+        if (platzFlagge && platzText) tx = cx + w/2 + fw/2 + 3;
+        if (platzFlagge) {
+          const fx = platzText ? (cx + w/2 - fw/2 - (fw/2 + 3) + fw/2) : (cx + w/2 - fw/2);
+          svg += flaggeSvg(seg.flag, platzText ? (cx + w/2 - fw - 3) : fx, y + (barH - fh)/2, fh);
+        }
+        if (platzText) {
+          svg += `<text x="${tx.toFixed(1)}" y="${(y+barH/2+4).toFixed(1)}" text-anchor="middle" font-family="Roboto Condensed" font-size="11" fill="var(--chart-ink,#0d0d0d)" font-weight="700">${seg.label}</text>`;
         }
         cx += w;
       });
@@ -334,8 +412,8 @@
   window.LCData = {
     SESSIONS, IDLE_PENALTIES, MONTHS, MONTH_LABELS, MONTH_SHORT,
     MONTHS_N, PERIOD_LONG, PERIOD_SHORT, MONATE_TXT, GES_TXT, STAND,
-    COUNTRY_NAMES, COUNTRY_FLAGS, QUARTERS,
-    eu, num, pct, pct1,
+    COUNTRY_NAMES, QUARTERS, flagge, flaggeSvg, FLAG_BREITE,
+    eu, num, pct, pct1, kwhp,
     sumBy, groupBy, aggregate, withAvg,
     byMonth, byMonths, byVehicle, byDriver, byCountry, byField,
     getVehicleMeta, byHour, byWeekday, masterStats,

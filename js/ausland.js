@@ -5,7 +5,7 @@
   const D = window.LCData;
   const {
     SESSIONS, MONTHS, MONTH_LABELS, MONTH_SHORT, COUNTRY_NAMES,
-    eu, num, pct, sumBy, groupBy, aggregate, withAvg, byField,
+    eu, num, pct, kwhp, sumBy, groupBy, aggregate, withAvg, byField, flagge,
     svgStackedBars
   } = D;
 
@@ -51,7 +51,7 @@
       const segs = laender
         .map(l => ({ land: l.key, value: sumBy(rows.filter(s => s.c === l.key), s => s.eu) }))
         .filter(s => s.value > 0)
-        .map(s => ({ value: s.value, color: farbe(s.land), label: s.land }));
+        .map(s => ({ value: s.value, color: farbe(s.land), label: s.land, flag: s.land }));
       return { label: MONTH_SHORT[m] || m, segments: segs,
                summe: sumBy(rows, s => s.eu), n: rows.length };
     });
@@ -116,7 +116,7 @@
         </div>
         <div class="kpi">
           <div class="label">Ø Preis</div>
-          <div class="val">${aus_kwh > 0 ? (aus_eur / aus_kwh).toFixed(2) : '—'}<span class="u">€/kWh</span></div>
+          <div class="val">${aus_kwh > 0 ? kwhp(aus_eur / aus_kwh) : '—'}<span class="u">€/kWh</span></div>
           <div class="extra">im Ausland</div>
         </div>
         <div class="kpi">
@@ -138,7 +138,8 @@
         </div>
         <div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:12px;font-size:12px;">
           ${laender.map(l => `<span style="display:inline-flex;align-items:center;gap:6px;">
-            <span style="width:11px;height:11px;background:${farbe(l.key)};border:1px solid var(--ink);"></span>
+            ${flagge(l.key, 11)}
+            <span style="width:9px;height:9px;background:${farbe(l.key)};border:1px solid var(--ink);"></span>
             <b>${l.key}</b> <span class="muted">${landName(l.key)}</span></span>`).join('')}
         </div>
       </div>
@@ -158,12 +159,12 @@
             return `<tr>
               <td class="rank rank-${i < 3 ? i + 1 : 'x'}">${i + 1}</td>
               <td><span style="display:inline-flex;align-items:center;gap:7px;">
-                <span style="width:11px;height:11px;background:${farbe(l.key)};border:1px solid var(--ink);"></span>
+                ${flagge(l.key, 12)}
                 <b>${l.key}</b> <span class="muted">${landName(l.key)}</span></span></td>
               <td class="num">${l.n}</td>
               <td class="num">${num(l.kwh, 0)}</td>
               <td class="num"><b>${eu(l.eur)}</b></td>
-              <td class="num">${l.kwh > 0 ? (l.eur / l.kwh).toFixed(3) : '—'}</td>
+              <td class="num">${l.kwh > 0 ? kwhp(l.eur / l.kwh, 3) : '—'}</td>
               <td class="num">${pct(l.eur / aus_eur)}</td>
               <td class="small">${kfz.join(' · ')}</td>
             </tr>`;

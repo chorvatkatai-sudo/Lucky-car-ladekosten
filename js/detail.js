@@ -3,7 +3,7 @@
   const D = window.LCData;
   const {
     SESSIONS, IDLE_PENALTIES, MONTHS, MONTH_LABELS,
-    COUNTRY_NAMES, eu, num, pct, sumBy, aggregate, withAvg
+    COUNTRY_NAMES, eu, num, pct, kwhp, sumBy, aggregate, withAvg
   } = D;
 
   // — Helpers
@@ -126,7 +126,7 @@
       <div class="kpi hi"><div class="label">Treffer</div><div class="val">${list.length}</div><div class="extra">von ${SESSIONS.length} Sessions</div></div>
       <div class="kpi"><div class="label">Energie</div><div class="val">${num(agg.kwh,0)}<span class="u">kWh</span></div><div class="extra">${agg.n? num(agg.kwh/agg.n,1):'0'} kWh Ø</div></div>
       <div class="kpi"><div class="label">Kosten</div><div class="val" style="font-size:26px;">${eu(agg.eur)}</div><div class="extra">gefilterte Summe</div></div>
-      <div class="kpi"><div class="label">Ø Preis</div><div class="val">${agg.avg_eur_kwh.toFixed(2)}<span class="u">€/kWh</span></div><div class="extra">der Auswahl</div></div>
+      <div class="kpi"><div class="label">Ø Preis</div><div class="val">${kwhp(agg.avg_eur_kwh)}<span class="u">€/kWh</span></div><div class="extra">der Auswahl</div></div>
       <div class="kpi ${zeitN?'warn':'good'}"><div class="label">Zeit-Tarif</div><div class="val">${zeitN}</div><div class="extra">${eu(zeitEur)} vermeidbar</div></div>
     `;
 
