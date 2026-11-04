@@ -371,26 +371,7 @@
 
     let html = `
       <h1 style="font-weight:900;font-size:32px;letter-spacing:-0.5px;margin:0 0 4px;">Standzeiten &amp; Minutenpositionen</h1>
-      <p style="margin:0 0 18px;color:var(--ink-3);font-size:14px;">nach Ladezeit abgerechnete Positionen · wie viel davon wirklich vermeidbar ist</p>
-
-      <div class="alert-box info">
-        <div class="icon">i</div>
-        <div class="body">
-          <h4 style="font-size:19px;">Von ${eu(totalZeit + totalIdle)} Minutenkosten sind <b>${eu(totalStand + totalIdle)}</b> vermeidbar</h4>
-          <p>
-            Die ${zeitSess.length} Minutenpositionen (DKV-Codes 0965/0966, 0 kWh) sahen zunächst nach
-            Blockiergebühren aus. Geprüft an den Rechnungen am 04.11.2026 sind sie es überwiegend nicht:
-            sie kosten durchgehend rund <b>0,09 €/Minute</b> und liegen bei 475 von 486 Positionen neben
-            einer Energiezeile derselben Ladung. Rechnet man die geladene Energie auf die Minuten um,
-            ergibt sich eine Ladeleistung mit dem <b>Median von 58 kW</b> — die Minuten sind also
-            überwiegend die <b>echte Ladedauer</b> und Bestandteil des DKV-Tarifs.<br>
-            Aufgeteilt: <b>${eu(totalLade)}</b> Ladezeit (nicht vermeidbar, zählt im Reiter Effizienz
-            beim effektiven Preis je kWh mit) und <b>${eu(totalStand)}</b> Standzeit über der benötigten
-            Ladedauer. Dazu ${idleRows.length} Tesla-Überlastungsgebühren à ${eu(totalIdle)} — die sind
-            echte Strafen und voll vermeidbar.
-          </p>
-        </div>
-      </div>
+      <p style="margin:0 0 18px;color:var(--ink-3);font-size:14px;">nach Minuten abgerechnete Positionen · davon ${eu(totalStand + totalIdle)} vermeidbar, ${eu(totalLade)} echte Ladezeit</p>
 
       <div class="kpis">
         <div class="kpi warn">

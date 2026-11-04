@@ -54,14 +54,6 @@
   // ==========================================================================
   // Hilfsdarstellungen
   // ==========================================================================
-  function hinweisBoxen(){
-    return A.hinweise.map(h => `
-      <div class="alert-box ${h.art === 'warn' ? '' : 'info'}">
-        <div class="icon">${h.art === 'warn' ? '!' : 'i'}</div>
-        <div class="body"><h4>${esc(h.titel)}</h4><p>${esc(h.text)}</p></div>
-      </div>`).join('');
-  }
-
   // Gestapelter Monatsbalken: A1 / A2 / B / C
   const FARBE = {A1:'#ff5a4d', A2:'#ff9a4d', B:'#4d96e0', C:'#FFE500'};
   const TOPF_NAME = {
@@ -206,31 +198,11 @@
             Säule ist also nachweislich erreichbar. „Wahrscheinlich“ = Ort ohne eigenen Tesla-Nachweis.<br>
             <b>Zeitfenster</b> = Ladungen, die schon unter ${ekwh(K.referenz)} lagen, aber tagsüber statt
             nachts erfolgten (${K.offpeak_von}–0${K.offpeak_bis} Uhr sind ${ekwh(K.referenz_off)}).<br>
-            <b>Stehenbleiben</b> = nur der Teil der Minutenpositionen, der <b>nicht</b> Ladezeit war,
-            plus die Tesla-Überlastungsgebühren.
+            <b>Stehenbleiben</b> = das Fahrzeug hing länger am Kabel, als zum Laden nötig war, und die
+            Säule rechnet nach Minuten ab. <b>Vollständig vermeidbar.</b> Die echte Ladedauer
+            (${eu(A.gesamt.zeit_lade_eur)}) ist hier bewusst <b>nicht</b> enthalten — sie fällt beim
+            DKV-Tarif zwangsläufig an und steckt im effektiven Preis je kWh, also in der Netzwahl.
           </p>
-          <div class="alert-box info" style="margin:12px 0 0;">
-            <div class="icon">i</div>
-            <div class="body">
-              <h4>Korrektur vom 04.11.2026: Minuten sind meist Ladezeit, nicht Blockieren</h4>
-              <p>
-                Die DKV-Minutenpositionen (Codes 0965/0966, 0 kWh) sahen zunächst nach Blockiergebühren aus.
-                Die Prüfung an den Rechnungen zeigt etwas anderes: sie kosten durchgehend rund
-                <b>0,09 €/Minute</b> und liegen bei <b>475 von 486</b> Positionen neben einer Energiezeile
-                derselben Ladung. Rechnet man die geladene Energie auf die Minuten um, ergibt sich eine
-                Ladeleistung mit dem <b>Median von 58 kW</b> — die Minuten sind also überwiegend die
-                <b>echte Ladedauer</b> und wären auch bei vorbildlichem Verhalten angefallen.
-                Es ist ein Minutenbestandteil des DKV-Tarifs, keine Strafe.<br>
-                Deshalb zählt hier nur noch die Standzeit <b>über</b> der benötigten Ladedauer
-                (gerechnet mit konservativen 11 kW, also eher zu wenig als zu viel).
-                Von ${eu(A.gesamt.zeit_brutto_eur)} Minutenkosten sind
-                <b>${eu(A.gesamt.zeit_lade_eur)} Ladezeit</b> und
-                <b>${eu(A.gesamt.zeit_stand_eur)} Standzeit</b>.
-                Die Ladezeit ist nicht verschwunden — sie steckt jetzt im effektiven Preis je kWh und
-                damit in der Netzwahl, denn am Supercharger gibt es überhaupt keinen Minutenanteil.
-              </p>
-            </div>
-          </div>
         </div>
 
         <div class="card">
@@ -433,7 +405,7 @@
       </div>
 
       <!-- Methodik -->
-      <div class="card info">
+      <div class="card">
         <div class="card-h"><h3>Wie gerechnet wurde</h3><span class="h-sub">damit die Zahl überprüfbar bleibt</span></div>
         <div style="font-size:13.5px;line-height:1.65;color:var(--ink-2);">
           <p style="margin:0 0 9px;"><b>Referenzpreis ${ekwh(K.referenz)}.</b> Dieser Wert ist nicht geschätzt, sondern
@@ -461,7 +433,6 @@
         </div>
       </div>
 
-      ${hinweisBoxen()}
     `;
     host.innerHTML = h;
   }
@@ -761,7 +732,6 @@
       </p>
       ${A.je_fahrer.filter(f => f.kwh >= 50 || f.zeit_eur > 20).map(fahrerBlatt).join('')}
 
-      ${hinweisBoxen()}
     `;
     host.innerHTML = h;
   }

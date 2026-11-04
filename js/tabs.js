@@ -190,8 +190,9 @@
             <div><b>Stehenbleiben:</b> ${eu(AN.gesamt.topf.C)}<br/><span class="muted">Standzeit nach Ladeende</span></div>
           </div>
           <div style="font-size:11.5px;color:var(--ink-4);margin-top:8px;line-height:1.5;">
-            Die Minutenpositionen von ${eu(totalZeit)} sind aufgeteilt: ${eu(totalLade)} davon sind
-            <b>echte Ladezeit</b> und damit Tarifbestandteil, nur ${eu(totalStand)} sind Standzeit.
+            Von ${eu(totalZeit)} nach Minuten abgerechneten Kosten sind ${eu(totalLade)} <b>echte Ladezeit</b>
+            und damit unvermeidbarer Tarifbestandteil. Die übrigen ${eu(totalStand)} sind Standzeit nach
+            Ladeende — <b style="color:#ff7a6e;">vermeidbar</b> und oben bereits mitgezählt.
           </div>` : ''}
           <hr class="divider"/>
           <div style="font-size:12px;color:var(--ink-3);">
@@ -376,19 +377,7 @@
         </div>
       </div>
 
-      ${zeitSess.length || idlePens.length ? `
-      <div class="alert-box">
-        <div class="icon">!</div>
-        <div class="body">
-          <h4>Minutenpositionen in diesem Monat</h4>
-          <p>
-            <b>${zeitSess.length}</b> Positionen à ${eu(sumBy(zeitSess, s=>s.eu))} brutto. Davon sind
-            <b>${eu(sumBy(zeitSess, s=>s.lv||0))}</b> echte Ladezeit (Tarifbestandteil, nicht vermeidbar)
-            und <b>${eu(sumBy(zeitSess, s=>s.sv||0))}</b> Standzeit nach Ladeende.
-            Dazu <b>${idlePens.length}</b> Tesla-Überlastungsgebühren à ${eu(sumBy(idlePens, r=>r.eu))}.
-          </p>
-        </div>
-      </div>` : ''}
+
 
       ${zeitSess.length ? `
       <div class="card">
